@@ -1,0 +1,6 @@
+{
+  "name": "Obeecreatives Workspace OS",
+  "description": "Unified Creative Agency Workspace OS & Financial Management System for Obeecreatives",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

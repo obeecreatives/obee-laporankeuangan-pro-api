@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0B0F17"/>
+  <circle cx="256" cy="256" r="180" stroke="#1F2937" stroke-width="8"/>
+  <circle cx="256" cy="256" r="140" fill="#E30000" fill-opacity="0.1" stroke="#E30000" stroke-width="4"/>
+  <!-- Stylized O & B Obee Creatives Mark -->
+  <path d="M190 170 C150 170 130 200 130 256 C130 312 150 342 190 342 C230 342 250 312 250 256 C250 200 230 170 190 170 Z" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M260 170 H320 C350 170 370 188 370 214 C370 238 352 252 330 256 C356 260 374 278 374 304 C374 332 350 342 320 342 H260 V170 Z" fill="#E30000"/>
+  <circle cx="256" cy="256" r="28" fill="#FFFFFF"/>
+</svg>
