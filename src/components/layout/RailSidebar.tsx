@@ -1,80 +1,100 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  KanbanSquare,
-  Briefcase,
-  Users,
-  DollarSign,
-  FileText,
-  FolderOpen,
-  Camera,
-  Package,
-  Share2,
-  UserCheck,
-  UserPlus,
+  LayoutDashboard,
+  PlusCircle,
+  FileSpreadsheet,
+  BookOpen,
+  TrendingUp,
+  Scale,
+  RefreshCw,
+  DownloadCloud,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
-  Layers,
-  Sparkles,
+  ShieldCheck,
+  FileCheck2,
 } from 'lucide-react';
-import { WORKSPACE_MODULES } from '../../data/constants';
-import { WorkspaceModule, UserRole } from '../../types/finance';
 
 interface RailSidebarProps {
-  activeModuleId: string;
-  onSelectModule: (module: WorkspaceModule) => void;
-  userRole: UserRole;
+  activeTab: string;
+  onSelectTab: (tab: string) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  gasConnected?: boolean;
 }
 
 export const RailSidebar: React.FC<RailSidebarProps> = ({
-  activeModuleId,
-  onSelectModule,
-  userRole,
+  activeTab,
+  onSelectTab,
   isCollapsed,
   onToggleCollapse,
+  gasConnected = true,
 }) => {
-  const [hoveredModule, setHoveredModule] = useState<string | null>(null);
-
-  // Icon mapping helper
-  const getIcon = (iconName: string, className = 'w-5 h-5') => {
-    switch (iconName) {
-      case 'KanbanSquare':
-        return <KanbanSquare className={className} />;
-      case 'Briefcase':
-        return <Briefcase className={className} />;
-      case 'Users':
-        return <Users className={className} />;
-      case 'DollarSign':
-        return <DollarSign className={className} />;
-      case 'FileText':
-        return <FileText className={className} />;
-      case 'FolderOpen':
-        return <FolderOpen className={className} />;
-      case 'Camera':
-        return <Camera className={className} />;
-      case 'Package':
-        return <Package className={className} />;
-      case 'Share2':
-        return <Share2 className={className} />;
-      case 'UserCheck':
-        return <UserCheck className={className} />;
-      case 'UserPlus':
-        return <UserPlus className={className} />;
-      default:
-        return <Layers className={className} />;
-    }
-  };
-
-  const categories = [
-    { key: 'core', label: 'Core Operations' },
-    { key: 'finance', label: 'Finance & Legal' },
-    { key: 'creative', label: 'Creative & Assets' },
-    { key: 'people', label: 'People & Talent' },
+  const financialGroups = [
+    {
+      group: 'Pembukuan Utama',
+      items: [
+        {
+          key: 'dashboard',
+          label: 'Dashboard',
+          desc: 'Ikhtisar & ringkasan saldo',
+          icon: LayoutDashboard,
+        },
+        {
+          key: 'input',
+          label: 'Input Transaksi',
+          desc: 'Catat kas masuk/keluar',
+          icon: PlusCircle,
+          highlight: true,
+        },
+        {
+          key: 'riwayat',
+          label: 'Buku Jurnal Umum',
+          desc: 'Daftar transaksi jurnal',
+          icon: FileSpreadsheet,
+        },
+        {
+          key: 'bukubesar',
+          label: 'Buku Besar & Saldo',
+          desc: 'Mutasi & Neraca Saldo akun',
+          icon: BookOpen,
+        },
+      ],
+    },
+    {
+      group: 'Laporan Keuangan Resmi',
+      items: [
+        {
+          key: 'labarugi',
+          label: 'Laporan Laba Rugi',
+          desc: 'Kinerja laba/rugi akrual',
+          icon: TrendingUp,
+        },
+        {
+          key: 'neraca',
+          label: 'Laporan Neraca',
+          desc: 'Posisi aktiva vs pasiva',
+          icon: Scale,
+        },
+      ],
+    },
+    {
+      group: 'Integrasi Data Sheet',
+      items: [
+        {
+          key: 'gas-settings',
+          label: 'Koneksi Live Sheet',
+          desc: 'Headless Google Apps Script',
+          icon: RefreshCw,
+        },
+        {
+          key: 'integrasi',
+          label: 'Tarik Data Eksternal',
+          desc: 'Import invoice CRM & payroll',
+          icon: DownloadCloud,
+        },
+      ],
+    },
   ];
-
-  const isRoleAdmin = userRole === 'super_admin' || userRole === 'project_manager';
 
   return (
     <aside
@@ -93,117 +113,111 @@ export const RailSidebar: React.FC<RailSidebarProps> = ({
               <div className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white truncate">
                 obee<span className="text-[#E30000]">creatives</span>
               </div>
-              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-[#94A3B8]">
-                Workspace OS
+              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-[#94A3B8] flex items-center gap-1">
+                <FileCheck2 className="w-3 h-3 text-[#E30000]" />
+                <span>Laporan Keuangan</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Module Categories Navigation */}
+      {/* Navigation Groups */}
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-        {categories.map((cat) => {
-          const modulesInCat = WORKSPACE_MODULES.filter(
-            (m) => m.category === cat.key && (!m.adminOnly || isRoleAdmin)
-          );
+        {financialGroups.map((group) => (
+          <div key={group.group} className="space-y-1">
+            {!isCollapsed && (
+              <div className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#94A3B8]">
+                {group.group}
+              </div>
+            )}
 
-          if (modulesInCat.length === 0) return null;
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.key;
 
-          return (
-            <div key={cat.key} className="space-y-1">
-              {!isCollapsed && (
-                <div className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#94A3B8]">
-                  {cat.label}
-                </div>
-              )}
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => onSelectTab(item.key)}
+                  title={isCollapsed ? item.label : undefined}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all group ${
+                    isActive
+                      ? 'bg-[#DC2626] text-white shadow-md shadow-red-600/25 font-bold'
+                      : item.highlight
+                      ? 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 font-semibold'
+                      : 'hover:bg-slate-100 dark:hover:bg-[#1E293B] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
+                  } ${isCollapsed ? 'justify-center' : ''}`}
+                >
+                  <Icon
+                    className={`w-5 h-5 shrink-0 ${
+                      isActive
+                        ? 'text-white'
+                        : item.highlight
+                        ? 'text-[#DC2626]'
+                        : 'text-slate-400 dark:text-[#94A3B8] group-hover:text-[#DC2626]'
+                    }`}
+                  />
 
-              {modulesInCat.map((module) => {
-                const isActive = activeModuleId === module.id;
-                const isHovered = hoveredModule === module.id;
-
-                return (
-                  <div key={module.id} className="relative">
-                    <button
-                      onClick={() => onSelectModule(module)}
-                      onMouseEnter={() => setHoveredModule(module.id)}
-                      onMouseLeave={() => setHoveredModule(null)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all group ${
-                        isActive
-                          ? 'bg-[#DC2626] text-white shadow-md shadow-red-600/25 font-semibold'
-                          : 'hover:bg-slate-100 dark:hover:bg-[#1E293B] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
-                      } ${isCollapsed ? 'justify-center' : ''}`}
-                    >
-                      <div className={`${isActive ? 'text-white' : 'text-slate-400 dark:text-[#94A3B8] group-hover:text-[#DC2626]'}`}>
-                        {getIcon(module.icon)}
+                  {!isCollapsed && (
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="truncate font-bold">{item.label}</div>
+                      <div
+                        className={`text-[10px] truncate ${
+                          isActive
+                            ? 'text-red-100'
+                            : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                      >
+                        {item.desc}
                       </div>
+                    </div>
+                  )}
 
-                      {!isCollapsed && (
-                        <div className="flex-1 flex items-center justify-between min-w-0">
-                          <span className="truncate">{module.name}</span>
-                          {module.status === 'active' && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                              isActive
-                                ? 'bg-white/20 text-white'
-                                : 'bg-[#450A0A] text-red-300'
-                            }`}>
-                              Aktif
-                            </span>
-                          )}
-                          {module.externalUrl && (
-                            <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
-                          )}
-                        </div>
-                      )}
-                    </button>
-
-                    {/* Tooltip on collapsed rail mode */}
-                    {isCollapsed && isHovered && (
-                      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 whitespace-nowrap border border-gray-700 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                        <div className="font-bold flex items-center gap-2">
-                          {module.name}
-                          {module.status === 'active' && (
-                            <span className="text-[9px] bg-[#E30000] text-white px-1.5 py-0.2 rounded-full">
-                              Active
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-gray-400 max-w-xs truncate">
-                          {module.description}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+                  {!isCollapsed && isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
-      {/* Rail Collapse Toggle & Footer */}
+      {/* Footer Connection & Collapse Status */}
       <div className="p-3 border-t border-slate-200 dark:border-[#1E293B] space-y-2">
+        {!isCollapsed && (
+          <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#111622] border border-slate-100 dark:border-slate-800 text-xs">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  gasConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                }`}
+              />
+              <span className="font-bold text-slate-700 dark:text-slate-300">
+                Google Sheet GAS
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              {gasConnected ? 'Terhubung & Sinkron' : 'Mode Offline / Cache'}
+            </p>
+          </div>
+        )}
+
         <button
           onClick={onToggleCollapse}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#1E293B] transition"
-          title={isCollapsed ? 'Buka Sidebar' : 'Ciutkan Sidebar'}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition"
+          title={isCollapsed ? 'Perlebar Sidebar' : 'Ciutkan Sidebar'}
         >
           {isCollapsed ? (
-            <ChevronRight className="w-4 h-4 text-[#DC2626]" />
+            <ChevronRight className="w-4 h-4" />
           ) : (
             <>
               <ChevronLeft className="w-4 h-4" />
-              <span>Ciutkan Rail</span>
+              <span>Ciutkan Sidebar</span>
             </>
           )}
         </button>
-
-        {!isCollapsed && (
-          <div className="pt-2 px-2 text-[10px] text-slate-400 dark:text-[#94A3B8] text-center flex items-center justify-center gap-1 font-medium">
-            <Sparkles className="w-3 h-3 text-[#DC2626]" />
-            <span>Next-Gen V2 Architecture</span>
-          </div>
-        )}
       </div>
     </aside>
   );

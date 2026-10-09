@@ -5,12 +5,13 @@ import {
   FileSpreadsheet,
   TrendingUp,
   Scale,
+  BookOpen,
+  RefreshCw,
+  DownloadCloud,
   Menu,
   X,
-  ExternalLink,
+  FileCheck2,
 } from 'lucide-react';
-import { WORKSPACE_MODULES } from '../../data/constants';
-import { WorkspaceModule, UserRole } from '../../types/finance';
 
 interface MobileNavigationProps {
   activeTab: string;
@@ -18,9 +19,7 @@ interface MobileNavigationProps {
   isOpenDrawer: boolean;
   onCloseDrawer: () => void;
   onOpenDrawer: () => void;
-  activeModuleId: string;
-  onSelectModule: (module: WorkspaceModule) => void;
-  userRole: UserRole;
+  gasConnected?: boolean;
 }
 
 export const MobileNavigation: React.FC<MobileNavigationProps> = ({
@@ -29,18 +28,40 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   isOpenDrawer,
   onCloseDrawer,
   onOpenDrawer,
-  activeModuleId,
-  onSelectModule,
-  userRole,
+  gasConnected = true,
 }) => {
-  const isRoleAdmin = userRole === 'super_admin' || userRole === 'project_manager';
-
   const bottomTabs = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'input', label: 'Input', icon: PlusCircle },
     { key: 'riwayat', label: 'Jurnal', icon: FileSpreadsheet },
     { key: 'labarugi', label: 'Laba Rugi', icon: TrendingUp },
     { key: 'neraca', label: 'Neraca', icon: Scale },
+  ];
+
+  const allFinancialMenus = [
+    {
+      group: 'Pembukuan Utama',
+      items: [
+        { key: 'dashboard', label: 'Dashboard Keuangan', icon: LayoutDashboard },
+        { key: 'input', label: 'Input Transaksi Baru', icon: PlusCircle },
+        { key: 'riwayat', label: 'Buku Jurnal Umum', icon: FileSpreadsheet },
+        { key: 'bukubesar', label: 'Buku Besar & Neraca Saldo', icon: BookOpen },
+      ],
+    },
+    {
+      group: 'Laporan Keuangan',
+      items: [
+        { key: 'labarugi', label: 'Laporan Laba Rugi', icon: TrendingUp },
+        { key: 'neraca', label: 'Laporan Neraca', icon: Scale },
+      ],
+    },
+    {
+      group: 'Koneksi & Sinkronisasi',
+      items: [
+        { key: 'gas-settings', label: 'Koneksi Google Apps Script', icon: RefreshCw },
+        { key: 'integrasi', label: 'Tarik Data Eksternal (CRM/Payroll)', icon: DownloadCloud },
+      ],
+    },
   ];
 
   return (
@@ -66,7 +87,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           );
         })}
 
-        {/* More / Menu Drawer trigger */}
+        {/* Menu Drawer trigger */}
         <button
           onClick={onOpenDrawer}
           className={`flex flex-col items-center justify-center flex-1 py-1 transition ${
@@ -76,7 +97,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           }`}
         >
           <Menu className="w-5 h-5" />
-          <span className="text-[10px] mt-1">Modul</span>
+          <span className="text-[10px] mt-1">Menu</span>
         </button>
       </nav>
 
@@ -98,84 +119,62 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   <div className="font-extrabold text-sm text-slate-900 dark:text-white">
                     obee<span className="text-[#E30000]">creatives</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 dark:text-[#94A3B8]">Unified Workspace OS</div>
+                  <div className="text-[10px] font-semibold text-slate-400">
+                    Sistem Laporan Keuangan
+                  </div>
                 </div>
               </div>
+
               <button
                 onClick={onCloseDrawer}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modules list */}
-            <div className="py-4 space-y-4">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#94A3B8] mb-2">
-                  Daftar 11 Modul Ekosistem
-                </div>
-                <div className="space-y-1">
-                  {WORKSPACE_MODULES.filter((m) => !m.adminOnly || isRoleAdmin).map((mod) => {
-                    const isSelected = activeModuleId === mod.id;
+            {/* Menu List */}
+            <div className="flex-1 py-4 space-y-6">
+              {allFinancialMenus.map((grp) => (
+                <div key={grp.group} className="space-y-1">
+                  <div className="px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {grp.group}
+                  </div>
+                  {grp.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.key;
                     return (
                       <button
-                        key={mod.id}
+                        key={item.key}
                         onClick={() => {
-                          onSelectModule(mod);
+                          onSelectTab(item.key);
                           onCloseDrawer();
                         }}
-                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-medium text-left transition ${
-                          isSelected
-                            ? 'bg-[#DC2626] text-white font-bold'
-                            : 'hover:bg-slate-100 dark:hover:bg-[#1E293B] text-slate-800 dark:text-[#F1F5F9]'
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
+                          isActive
+                            ? 'bg-[#DC2626] text-white shadow-md'
+                            : 'hover:bg-slate-100 dark:hover:bg-[#1E293B] text-slate-700 dark:text-slate-300'
                         }`}
                       >
-                        <div className="flex items-center gap-2.5">
-                          <span>{mod.name}</span>
-                          {mod.status === 'active' && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#450A0A] text-red-300 font-bold">
-                              Aktif
-                            </span>
-                          )}
-                        </div>
-                        {mod.externalUrl && <ExternalLink className="w-3.5 h-3.5 opacity-60" />}
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{item.label}</span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
-
-              {/* Extra tools */}
-              <div className="pt-2 border-t border-slate-200 dark:border-[#1E293B]">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#94A3B8] mb-2">
-                  Navigasi Laporan Keuangan
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <button
-                    onClick={() => {
-                      onSelectTab('integrasi');
-                      onCloseDrawer();
-                    }}
-                    className="p-2 rounded-lg bg-slate-100 dark:bg-[#1E293B] text-center font-medium text-slate-700 dark:text-[#F1F5F9]"
-                  >
-                    Hub Integrasi
-                  </button>
-                  <button
-                    onClick={() => {
-                      onSelectTab('gas-settings');
-                      onCloseDrawer();
-                    }}
-                    className="p-2 rounded-lg bg-slate-100 dark:bg-[#1E293B] text-center font-medium text-slate-700 dark:text-[#F1F5F9]"
-                  >
-                    Headless GAS
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
 
-            <div className="mt-auto pt-4 text-center text-[10px] text-slate-400 dark:text-[#94A3B8] border-t border-slate-200 dark:border-[#1E293B]">
-              Developed by lalumahendra/obeecreatives
+            {/* Status Footer */}
+            <div className="pt-4 border-t border-slate-200 dark:border-[#1E293B] text-xs">
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    gasConnected ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}
+                />
+                <span>Google Sheet: {gasConnected ? 'Terhubung' : 'Offline'}</span>
+              </div>
             </div>
           </div>
         </div>

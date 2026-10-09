@@ -98,6 +98,28 @@ export interface UserProfile {
   telepon: string;
 }
 
+export interface BukuBesarItem {
+  tanggal: string;
+  deskripsi: string;
+  tipe: string;
+  divisi?: string;
+  debit: number;
+  kredit: number;
+  saldoBerjalan: number;
+}
+
+export interface BukuBesarAccount {
+  kode: string;
+  nama: string;
+  kategori: AccountCategory;
+  normalBalance: 'Debit' | 'Kredit';
+  saldoAwal: number;
+  totalDebit: number;
+  totalKredit: number;
+  saldoAkhir: number;
+  transaksi: BukuBesarItem[];
+}
+
 export interface WorkspaceModule {
   id: string;
   name: string;

@@ -5,22 +5,16 @@ import { MobileNavigation } from './components/layout/MobileNavigation';
 import { DashboardView } from './components/finance/DashboardView';
 import { InputTransaksiView } from './components/finance/InputTransaksiView';
 import { RiwayatJurnalView } from './components/finance/RiwayatJurnalView';
+import { BukuBesarView } from './components/finance/BukuBesarView';
 import { LabaRugiView } from './components/finance/LabaRugiView';
 import { NeracaView } from './components/finance/NeracaView';
 import { IntegrasiHubView } from './components/finance/IntegrasiHubView';
 import { HeadlessGasPanel } from './components/finance/HeadlessGasPanel';
-import { PinModal } from './components/modals/PinModal';
-import { ModuleModal } from './components/modals/ModuleModal';
 import { GasService } from './services/gasService';
-import { StorageService } from './services/storageService';
-import { INITIAL_USERS } from './data/constants';
-import { WorkspaceModule, UserProfile } from './types/finance';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [activeModuleId, setActiveModuleId] = useState<string>('laporan-keuangan');
-  const [selectedModule, setSelectedModule] = useState<WorkspaceModule | null>(null);
 
   // Dark / Light Theme (Mode Gelap — Default)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -34,9 +28,6 @@ export default function App() {
     return localStorage.getItem('obee_sidebar_collapsed') === 'true';
   });
 
-  // Current User (RBAC & PIN)
-  const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]);
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Toast Notification
@@ -47,6 +38,9 @@ export default function App() {
     connected: true,
     latencyMs: 95,
   });
+
+  // Data version trigger to refresh components
+  const [dataVersion, setDataVersion] = useState(0);
 
   // Apply dark theme class to <html> and <body>
   useEffect(() => {
@@ -60,9 +54,6 @@ export default function App() {
       localStorage.setItem('obee_theme', 'light');
     }
   }, [isDarkMode]);
-
-  // Data version trigger to refresh components
-  const [dataVersion, setDataVersion] = useState(0);
 
   // Initial connection check & live sheet sync
   useEffect(() => {
@@ -111,24 +102,15 @@ export default function App() {
     });
   };
 
-  const handleSelectModule = (mod: WorkspaceModule) => {
-    if (mod.id === 'laporan-keuangan') {
-      setActiveModuleId('laporan-keuangan');
-      setActiveTab('dashboard');
-    } else {
-      setSelectedModule(mod);
-    }
-  };
-
   return (
     <div className={`${isDarkMode ? 'dark' : ''} min-h-screen flex bg-[#F8FAFC] dark:bg-[#0B0F17] text-slate-900 dark:text-[#F1F5F9] transition-colors selection:bg-red-500/20 selection:text-[#EF4444]`}>
-      {/* Desktop/Tablet Rail Sidebar */}
+      {/* Desktop/Tablet Dedicated Financial Sidebar */}
       <RailSidebar
-        activeModuleId={activeModuleId}
-        onSelectModule={handleSelectModule}
-        userRole={currentUser.role}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={handleToggleCollapse}
+        gasConnected={gasStatus.connected}
       />
 
       {/* Main Workspace Frame */}
@@ -138,14 +120,12 @@ export default function App() {
           onSelectTab={setActiveTab}
           isDarkMode={isDarkMode}
           onToggleTheme={handleToggleTheme}
-          currentUser={currentUser}
-          onOpenPinModal={() => setIsPinModalOpen(true)}
           onOpenMobileMenu={() => setIsMobileDrawerOpen(true)}
           gasStatus={gasStatus}
           onRefreshData={handleManualRefresh}
         />
 
-        {/* View Router */}
+        {/* Financial View Router */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto" key={dataVersion}>
           {activeTab === 'dashboard' && (
             <DashboardView onNavigateTab={setActiveTab} />
@@ -170,18 +150,11 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'bukubesar' && <BukuBesarView />}
+
           {activeTab === 'labarugi' && <LabaRugiView />}
 
           {activeTab === 'neraca' && <NeracaView />}
-
-          {activeTab === 'integrasi' && (
-            <IntegrasiHubView
-              onSuccess={(msg) => {
-                showToast(msg, 'success');
-                setDataVersion((v) => v + 1);
-              }}
-            />
-          )}
 
           {activeTab === 'gas-settings' && (
             <HeadlessGasPanel
@@ -192,49 +165,46 @@ export default function App() {
               onRefreshData={() => setDataVersion((v) => v + 1)}
             />
           )}
+
+          {activeTab === 'integrasi' && (
+            <IntegrasiHubView
+              onSuccess={(msg) => {
+                showToast(msg, 'success');
+                setDataVersion((v) => v + 1);
+              }}
+              onRefreshData={() => setDataVersion((v) => v + 1)}
+            />
+          )}
         </main>
       </div>
 
-      {/* Mobile Drawer & Bottom Nav */}
+      {/* Mobile Sticky Navigation */}
       <MobileNavigation
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         isOpenDrawer={isMobileDrawerOpen}
         onCloseDrawer={() => setIsMobileDrawerOpen(false)}
         onOpenDrawer={() => setIsMobileDrawerOpen(true)}
-        activeModuleId={activeModuleId}
-        onSelectModule={handleSelectModule}
-        userRole={currentUser.role}
+        gasConnected={gasStatus.connected}
       />
 
-      {/* Profile & PIN Security Modal */}
-      <PinModal
-        currentUser={currentUser}
-        isOpen={isPinModalOpen}
-        onClose={() => setIsPinModalOpen(false)}
-        onUpdateCurrentUser={setCurrentUser}
-        onSuccess={(msg) => showToast(msg, 'success')}
-      />
-
-      {/* Workspace Other Modules Preview Modal */}
-      <ModuleModal
-        module={selectedModule}
-        onClose={() => setSelectedModule(null)}
-        onNavigateToFinance={() => {
-          setActiveModuleId('laporan-keuangan');
-          setActiveTab('dashboard');
-        }}
-      />
-
-      {/* Toast Notification */}
+      {/* Floating Toast Notification */}
       {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold bg-gray-900 text-white dark:bg-white dark:text-gray-900 border border-gray-800 dark:border-gray-200 animate-in fade-in slide-in-from-top-3 duration-200">
-          {toast.type === 'error' ? (
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-          )}
-          <span>{toast.message}</span>
+        <div className="fixed bottom-20 md:bottom-6 right-6 z-50 animate-in slide-in-from-bottom duration-200">
+          <div
+            className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl text-sm font-bold border backdrop-blur-md ${
+              toast.type === 'error'
+                ? 'bg-rose-900/95 text-white border-rose-700 shadow-rose-950/40'
+                : 'bg-slate-900/95 text-white border-slate-700 shadow-black/50'
+            }`}
+          >
+            {toast.type === 'error' ? (
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            )}
+            <span className="max-w-md">{toast.message}</span>
+          </div>
         </div>
       )}
     </div>

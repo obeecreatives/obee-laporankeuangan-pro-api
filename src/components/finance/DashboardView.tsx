@@ -308,11 +308,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
 
           <div className="pt-3 flex flex-wrap items-center gap-3">
             <button
+              onClick={() => onNavigateTab('bukubesar')}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            >
+              <FileSpreadsheet className="w-5 h-5 text-amber-500" />
+              <span>Buku Besar & Neraca Saldo</span>
+            </button>
+            <button
               onClick={() => onNavigateTab('labarugi')}
               className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
-              <span>Buka Laporan Laba Rugi</span>
+              <span>Buka Laba Rugi</span>
             </button>
             <button
               onClick={() => onNavigateTab('neraca')}

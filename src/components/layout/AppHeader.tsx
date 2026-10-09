@@ -1,29 +1,25 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
   Sun,
   Moon,
   Maximize2,
   Minimize2,
-  Download,
-  Share2,
-  ShieldCheck,
-  ChevronDown,
   RefreshCw,
-  ExternalLink,
+  PlusCircle,
   Menu,
+  ShieldCheck,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useFullscreen } from '../../hooks/useFullscreen';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { UserProfile } from '../../types/finance';
-import { SWITCH_APP_LIST } from '../../data/constants';
 
 interface AppHeaderProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
-  currentUser: UserProfile;
-  onOpenPinModal: () => void;
+  currentUser?: UserProfile;
   onOpenMobileMenu: () => void;
   gasStatus: { connected: boolean; latencyMs?: number };
   onRefreshData?: () => void;
@@ -34,35 +30,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onSelectTab,
   isDarkMode,
   onToggleTheme,
-  currentUser,
-  onOpenPinModal,
   onOpenMobileMenu,
   gasStatus,
   onRefreshData,
 }) => {
   const { isFullscreen, toggleFullscreen } = useFullscreen();
-  const { isInstallable, install, isIOS } = usePWAInstall();
-  const [isSwitchAppOpen, setIsSwitchAppOpen] = useState(false);
-  const switchAppRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (switchAppRef.current && !switchAppRef.current.contains(e.target as Node)) {
-        setIsSwitchAppOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const tabs = [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'input', label: 'Input Transaksi' },
-    { key: 'riwayat', label: 'Riwayat Jurnal' },
+    { key: 'riwayat', label: 'Jurnal Umum' },
+    { key: 'bukubesar', label: 'Buku Besar & Saldo' },
     { key: 'labarugi', label: 'Laba Rugi' },
     { key: 'neraca', label: 'Neraca' },
-    { key: 'integrasi', label: 'Hub Integrasi' },
-    { key: 'gas-settings', label: 'Headless GAS' },
+    { key: 'gas-settings', label: 'Sinkronisasi GAS' },
+    { key: 'integrasi', label: 'Tarik Data' },
   ];
 
   return (
@@ -80,12 +62,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#450A0A] text-red-300 uppercase tracking-wider">
-              Finance Hub
+            <span className="text-xs font-bold px-2 py-0.5 rounded bg-[#450A0A] text-red-300 uppercase tracking-wider">
+              Laporan Keuangan
             </span>
             <h1 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-[#F1F5F9] tracking-tight flex items-center gap-1.5">
-              <span>Laporan Keuangan</span>
-              <span className="hidden sm:inline font-bold text-slate-400 dark:text-[#94A3B8] text-xs">/ obee<span className="text-[#E30000]">creatives</span></span>
+              <span>obee<span className="text-[#E30000]">creatives</span></span>
+              <span className="hidden sm:inline font-medium text-slate-400 dark:text-[#94A3B8] text-xs">
+                • Sistem Akuntansi & Pembukuan Kas Asli
+              </span>
             </h1>
           </div>
 
@@ -105,120 +89,70 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <span>
               {gasStatus.connected
                 ? `GAS Headless Live (${gasStatus.latencyMs ?? 85}ms)`
-                : 'Local Cache Mode'}
+                : 'Mode Cache Lokal'}
             </span>
           </div>
         </div>
 
         {/* Right Action Tools */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Quick Catat Transaksi Button */}
+          <button
+            onClick={() => onSelectTab('input')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#E30000] text-white text-xs sm:text-sm font-bold shadow-sm hover:bg-red-700 transition"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Catat Transaksi</span>
+          </button>
+
           {/* Refresh data button */}
           {onRefreshData && (
             <button
               onClick={onRefreshData}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-              title="Perbarui Data"
+              className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5 text-xs font-semibold"
+              title="Sinkronkan dengan Google Sheet Sekarang"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden md:inline">Sinkronkan</span>
             </button>
           )}
 
-          {/* Switch App Dropdown */}
-          <div className="relative" ref={switchAppRef}>
-            <button
-              onClick={() => setIsSwitchAppOpen(!isSwitchAppOpen)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50/50 dark:bg-[#450A0A]/30 text-[#DC2626] dark:text-red-300 text-xs font-bold hover:bg-red-100 dark:hover:bg-[#450A0A]/60 transition"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Switch App</span>
-              <ChevronDown className="w-3 h-3 ml-0.5" />
-            </button>
-
-            {isSwitchAppOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#1E293B] rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                  Ekosistem Web Apps
-                </div>
-                <div className="py-1 space-y-1">
-                  <div className="px-3 py-2 rounded-lg bg-[#450A0A] text-red-200 text-xs font-bold flex items-center justify-between">
-                    <span>Laporan Keuangan</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-900 text-red-100 font-extrabold">
-                      Aktif
-                    </span>
-                  </div>
-                  {SWITCH_APP_LIST.map((app, idx) => (
-                    <a
-                      key={idx}
-                      href={app.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-[#F1F5F9] hover:bg-slate-100 dark:hover:bg-[#0F172A] transition"
-                    >
-                      <div className="flex flex-col">
-                        <span>{app.name}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-[#94A3B8]">{app.tag}</span>
-                      </div>
-                      <ExternalLink className="w-3 h-3 text-slate-400" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Fullscreen Button */}
-          <button
-            onClick={toggleFullscreen}
-            className="p-2 rounded-lg text-slate-600 dark:text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#1E293B] transition"
-            title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh'}
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4 text-[#DC2626]" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
-
-          {/* PWA Install Button */}
-          {(isInstallable || isIOS) && (
-            <button
-              onClick={install}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#DC2626] hover:bg-[#B80000] text-white text-xs font-semibold shadow-sm transition"
-              title="Install Aplikasi"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Install</span>
-            </button>
-          )}
-
-          {/* Theme Toggle Button */}
+          {/* Dark / Light Mode */}
           <button
             onClick={onToggleTheme}
-            className="p-2 rounded-lg text-slate-600 dark:text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#1E293B] transition"
-            title={isDarkMode ? 'Mode Terang' : 'Mode Gelap'}
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            aria-label="Toggle Theme"
           >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          {/* User Profile & Security PIN Trigger */}
+          {/* Fullscreen */}
           <button
-            onClick={onOpenPinModal}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#1E293B] hover:border-red-500 hover:bg-slate-50 dark:hover:bg-[#1E293B] transition ml-1"
-            title="Profil & Keamanan PIN"
+            onClick={toggleFullscreen}
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition hidden sm:flex"
+            aria-label="Toggle Fullscreen"
           >
-            <div className="w-7 h-7 rounded-lg bg-[#DC2626] text-white flex items-center justify-center text-xs font-black shadow-sm">
-              {currentUser.name.charAt(0)}
-            </div>
-            <div className="hidden lg:flex flex-col text-left">
-              <span className="text-xs font-bold text-slate-900 dark:text-[#F1F5F9] leading-tight truncate max-w-[120px]">
-                {currentUser.name.split(' ')[0]}
-              </span>
-              <span className="text-[10px] text-slate-400 dark:text-[#94A3B8] flex items-center gap-0.5 font-medium">
-                <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
-                {currentUser.roleLabel}
-              </span>
-            </div>
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
+
+          {/* User Indicator */}
+          <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 text-xs">
+            <span className="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-950/60 text-[#E30000] flex items-center justify-center font-bold text-xs">
+              LM
+            </span>
+            <div className="flex flex-col text-left">
+              <span className="font-bold text-slate-900 dark:text-white leading-none">
+                Lalu Mahendra
+              </span>
+              <span className="text-[10px] text-slate-400 leading-none mt-0.5">
+                Finance Admin
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Sub Tabs Navigation */}
+      {/* Sub Tabs Navigation (Horizontal on Top) */}
       <div className="px-4 lg:px-6 flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -226,13 +160,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               key={tab.key}
               onClick={() => onSelectTab(tab.key)}
-              className={`py-3.5 px-4 text-sm sm:text-base whitespace-nowrap border-b-2 transition-all ${
+              className={`py-3 px-3.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
                 isActive
-                  ? 'border-[#DC2626] text-[#DC2626] dark:text-[#EF4444] font-black'
-                  : 'border-transparent text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 font-bold'
+                  ? 'border-[#E30000] text-[#E30000] dark:text-red-400 font-extrabold'
+                  : 'border-transparent text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:border-slate-300'
               }`}
             >
-              {tab.label}
+              <span>{tab.label}</span>
             </button>
           );
         })}

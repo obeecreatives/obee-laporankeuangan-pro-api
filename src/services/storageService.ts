@@ -4,6 +4,8 @@ import {
   LabaRugiReport,
   NeracaReport,
   FinancialDashboardSummary,
+  BukuBesarAccount,
+  BukuBesarItem,
 } from '../types/finance';
 import {
   CHART_OF_ACCOUNTS,
@@ -458,5 +460,111 @@ export class StorageService {
       totalHutang: neraca.totalHutang,
       totalModal: neraca.totalModal,
     };
+  }
+
+  // Generate Buku Besar (General Ledger) for all accounts
+  static generateBukuBesar(startDateStr?: string, endDateStr?: string): BukuBesarAccount[] {
+    const entries = this.getJurnalEntries();
+    const saldoAwalMap = this.getSaldoAwal();
+
+    // Filter by dates if specified
+    const filteredEntries = entries.filter((e) => {
+      if (startDateStr && e.tanggal < startDateStr) return false;
+      if (endDateStr && e.tanggal > endDateStr) return false;
+      return true;
+    });
+
+    return CHART_OF_ACCOUNTS.map((akun) => {
+      const saldoAwal = Number(saldoAwalMap[akun.kode] || 0);
+      const isDebitNormal = akun.normalBalance === 'Debit';
+      let runningBalance = saldoAwal;
+      let totalDebit = 0;
+      let totalKredit = 0;
+      const transaksiItems: BukuBesarItem[] = [];
+
+      filteredEntries.forEach((entry) => {
+        let debit = 0;
+        let kredit = 0;
+        const isBelumLunas = entry.statusBayar.startsWith('Belum Lunas');
+
+        // Check if this transaction directly or indirectly hits this account
+        if (entry.kodeAkun === akun.kode) {
+          if (entry.tipe === 'Pendapatan Proyek') {
+            kredit = Number(entry.jumlah);
+          } else if (entry.tipe === 'Beban') {
+            debit = Number(entry.jumlah);
+          } else if (entry.tipe === 'Pembayaran Hutang') {
+            debit = Number(entry.jumlah);
+          }
+        }
+
+        // Secondary leg impacts (Kas & Bank: 1.1.1)
+        if (akun.kode === '1.1.1') {
+          if (entry.tipe === 'Pendapatan Proyek' && !isBelumLunas) {
+            debit = Number(entry.jumlah);
+          } else if (entry.tipe === 'Beban' && !isBelumLunas) {
+            kredit = Number(entry.jumlah);
+          } else if (entry.tipe === 'Pembayaran Hutang') {
+            kredit = Number(entry.jumlah);
+          } else if (entry.tipe === 'Pelunasan Piutang') {
+            debit = Number(entry.jumlah);
+          }
+        }
+
+        // Secondary leg impacts (Piutang Usaha: 1.1.2)
+        if (akun.kode === '1.1.2') {
+          if (entry.tipe === 'Pendapatan Proyek' && isBelumLunas) {
+            debit = Number(entry.jumlah);
+          } else if (entry.tipe === 'Pelunasan Piutang') {
+            kredit = Number(entry.jumlah);
+          }
+        }
+
+        // Secondary leg impacts (Hutang: 2.1.x)
+        if (akun.kategori === 'HUTANG') {
+          const targetHutangKode = BEBAN_TO_HUTANG_MAP[entry.kodeAkun] || '2.1.2';
+          if (entry.tipe === 'Beban' && isBelumLunas && targetHutangKode === akun.kode) {
+            kredit = Number(entry.jumlah);
+          }
+        }
+
+        if (debit > 0 || kredit > 0) {
+          totalDebit += debit;
+          totalKredit += kredit;
+
+          if (isDebitNormal) {
+            runningBalance += (debit - kredit);
+          } else {
+            runningBalance += (kredit - debit);
+          }
+
+          transaksiItems.push({
+            tanggal: entry.tanggal,
+            deskripsi: entry.deskripsi,
+            tipe: entry.tipe,
+            divisi: entry.divisi,
+            debit,
+            kredit,
+            saldoBerjalan: runningBalance,
+          });
+        }
+      });
+
+      const saldoAkhir = isDebitNormal
+        ? saldoAwal + totalDebit - totalKredit
+        : saldoAwal + totalKredit - totalDebit;
+
+      return {
+        kode: akun.kode,
+        nama: akun.nama,
+        kategori: akun.kategori,
+        normalBalance: akun.normalBalance,
+        saldoAwal,
+        totalDebit,
+        totalKredit,
+        saldoAkhir,
+        transaksi: transaksiItems,
+      };
+    });
   }
 }
