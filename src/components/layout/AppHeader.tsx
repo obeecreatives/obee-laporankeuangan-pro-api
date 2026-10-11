@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Sun,
   Moon,
@@ -9,6 +8,7 @@ import {
   Menu,
   ShieldCheck,
   FileSpreadsheet,
+  Download,
 } from 'lucide-react';
 import { useFullscreen } from '../../hooks/useFullscreen';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
@@ -23,6 +23,7 @@ interface AppHeaderProps {
   onOpenMobileMenu: () => void;
   gasStatus: { connected: boolean; latencyMs?: number };
   onRefreshData?: () => void;
+  onOpenInstallModal?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -33,8 +34,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenMobileMenu,
   gasStatus,
   onRefreshData,
+  onOpenInstallModal,
 }) => {
   const { isFullscreen, toggleFullscreen } = useFullscreen();
+  const { isInstalled } = usePWAInstall();
 
   const tabs = [
     { key: 'dashboard', label: 'Dashboard' },
@@ -104,6 +107,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         {/* Right Action Tools */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* In-App Install Button (HP / PC) */}
+          {!isInstalled && onOpenInstallModal && (
+            <button
+              onClick={onOpenInstallModal}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-xs sm:text-xs font-bold border border-slate-700/80 hover:bg-slate-800 dark:hover:bg-slate-700 transition shadow-sm"
+              title="Install aplikasi di HP atau Laptop"
+            >
+              <Download className="w-3.5 h-3.5 text-red-500 animate-bounce" />
+              <span className="hidden xs:inline">Install App</span>
+            </button>
+          )}
+
           {/* Quick Catat Transaksi Button */}
           <button
             onClick={() => onSelectTab('input')}

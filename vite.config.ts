@@ -11,27 +11,48 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
         manifest: {
           id: '/',
           name: 'Laporan Keuangan obeecreatives',
           short_name: 'ObeeFinance',
-          description: 'Unified Workspace OS & Sistem Laporan Keuangan Modern obeecreatives',
-          theme_color: '#E30000',
+          description: 'Sistem Informasi Laporan Keuangan & Akuntansi Kas obeecreatives',
+          theme_color: '#0B0F17',
           background_color: '#0B0F17',
           display: 'standalone',
+          orientation: 'portrait',
           start_url: '/',
           scope: '/',
+          categories: ['finance', 'business', 'productivity'],
           icons: [
             {
+              src: '/pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: '/pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: '/pwa-maskable-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+            {
               src: '/icon.svg',
-              sizes: '192x192 512x512',
+              sizes: 'any',
               type: 'image/svg+xml',
               purpose: 'any',
             },
           ],
         },
         devOptions: {
-          enabled: false, // Disabled in dev mode to prevent iframe service worker registration errors
+          enabled: false,
         },
       }),
       {
