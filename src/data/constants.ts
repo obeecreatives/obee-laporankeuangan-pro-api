@@ -4,7 +4,7 @@ export const DEFAULT_GAS_ENDPOINT =
   'https://script.google.com/macros/s/AKfycbxbBbXvA-anDn5ceglmzHBOWDetcWPkGqcW4EJTrs8N4r1HfH5oABADj_kvUL-jaXPI/exec';
 
 export const SPREADSHEET_IDS = {
-  LAPORAN_KEUANGAN: '1PpNpFOmflyDja0C4mlhDsoTGX6x7bcDa_80cTjXQiCM',
+  LAPORAN_KEUANGAN: '1liBVnd4WmFZ03fPL58bbgYOcCih6u7A8W5H7jIcmaxg',
   CRM: '1i8wT9sFuDLDEl7pXfGsrCYqYP5wEigaMCnwttqvXY5U',
   STAFF: '1dzGWpbHcSMBhpV_mivTTg0DCyllWT1Ymhe-GD7I-AOE',
   PROJECT_CONTROL: '1el1tK4NGhoslMWECWzIo-7nBAEox6KZ-2TjlJ6WLIV8',

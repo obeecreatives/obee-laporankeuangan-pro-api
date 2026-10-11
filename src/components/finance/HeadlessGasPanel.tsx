@@ -352,7 +352,16 @@ function doPost(e) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <a
+            href={`https://docs.google.com/spreadsheets/d/${SPREADSHEET_IDS.LAPORAN_KEUANGAN}/edit`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-sm font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Buka Google Sheet</span>
+          </a>
           <button
             onClick={() => setShowCodeModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161B26] text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
@@ -360,6 +369,23 @@ function doPost(e) {
             <Code className="w-4 h-4 text-[#E30000]" />
             <span>Lihat Script Integrasi</span>
           </button>
+        </div>
+      </div>
+
+      {/* Active Spreadsheet Verification Info Bar */}
+      <div className="p-4 rounded-xl bg-slate-100/80 dark:bg-[#161B26] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span className="text-slate-500 dark:text-slate-400 shrink-0">Spreadsheet Master Aktif:</span>
+          <span className="font-mono font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 truncate select-all">
+            {SPREADSHEET_IDS.LAPORAN_KEUANGAN}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 shrink-0">
+          <span>Sheet Target:</span>
+          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Jurnal Transaksi</span>
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-emerald-600 dark:text-emerald-400 font-bold">Two-Way Aktif</span>
         </div>
       </div>
 

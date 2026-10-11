@@ -124,6 +124,15 @@ export const GasCenterModal: React.FC<GasCenterModalProps> = ({
                 <span className="text-slate-400">Versi API Script:</span>
                 <span className="font-mono text-slate-700 dark:text-slate-300">v2.5 Standalone</span>
               </div>
+              <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                <span className="text-slate-400">ID Spreadsheet:</span>
+                <span
+                  className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[200px]"
+                  title={SPREADSHEET_IDS.LAPORAN_KEUANGAN}
+                >
+                  {SPREADSHEET_IDS.LAPORAN_KEUANGAN}
+                </span>
+              </div>
             </div>
           </div>
 
