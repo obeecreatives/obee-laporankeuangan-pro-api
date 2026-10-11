@@ -38,6 +38,9 @@ export interface JurnalEntry {
   statusBayar: PaymentStatus;
   tanggalBayar?: string;
   referensiId?: string;
+  rowNumber?: number;
+  sheetId?: string;
+  syncStatus?: 'synced' | 'local_only' | 'error';
   sumberIntegrasi?: 'MANUAL' | 'CRM_INVOICE' | 'PAYROLL' | 'PROJECT_CONTROL_FEE';
 }
 

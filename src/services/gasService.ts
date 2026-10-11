@@ -194,9 +194,15 @@ export class GasService {
             else if (desc.includes('Payroll STF-1785295519572')) rawAmount = 1320000;
           }
 
+          const rowNum = Number(r.no) || (idx + 1);
+          const rawId = r.id ? String(r.id) : ('row-' + rowNum);
+
           return {
-            id: 'sheet-row-' + (idx + 1),
+            id: 'sheet-row-' + rowNum,
             no: idx + 1,
+            rowNumber: rowNum + 1, // Header is row 1, data starts row 2
+            sheetId: rawId,
+            syncStatus: 'synced',
             tanggal: tglStr,
             tipe: r.tipe || 'Pendapatan Proyek',
             divisi: r.divisi || 'Umum/Tidak Spesifik',
@@ -241,6 +247,96 @@ export class GasService {
       success: false,
       message: res.message || 'Tidak ada data valid yang diterima dari Google Sheet.',
     };
+  }
+
+  // Push new journal entry directly to master Google Sheet
+  static async sendJurnalToSheet(entry: {
+    tanggal: string;
+    tipe: string;
+    divisi: string;
+    deskripsi: string;
+    kodeAkun: string;
+    namaAkun: string;
+    jumlah: number;
+    statusBayar: string;
+    tanggalBayar?: string;
+  }): Promise<{ success: boolean; message: string; rowNumber?: number }> {
+    try {
+      // In Google Sheet obeecreatives, amounts are represented in ribuan (e.g. 100 for 100,000, 1000 for 1,000,000)
+      const formattedAmount = entry.jumlah >= 1000 ? Math.round(entry.jumlah / 1000) : entry.jumlah;
+
+      const payload = {
+        action: 'addJurnal',
+        data: {
+          tanggal: entry.tanggal,
+          tipe: entry.tipe,
+          divisi: entry.divisi,
+          deskripsi: entry.deskripsi,
+          kodeAkun: entry.kodeAkun,
+          namaAkun: entry.namaAkun,
+          jumlah: formattedAmount,
+          statusBayar: entry.statusBayar,
+          tanggalBayar: entry.tanggalBayar || null,
+        },
+      };
+
+      const res = await this.callGasApi('addJurnal', undefined, payload);
+      if (res.isJson && res.data && res.data.success) {
+        return {
+          success: true,
+          message: res.data.message || 'Transaksi berhasil dicatat ke Google Sheet master.',
+          rowNumber: res.data.rowNumber,
+        };
+      }
+
+      const errMsg = (res.data && res.data.error) || res.message || 'Gagal mengirim ke Google Sheet.';
+      return { success: false, message: errMsg };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  // Delete journal entry from master Google Sheet
+  static async deleteJurnalFromSheet(params: {
+    id: string;
+    rowNumber?: number;
+    deskripsi?: string;
+    no?: number;
+  }): Promise<{ success: boolean; message: string }> {
+    try {
+      const payload = {
+        action: 'deleteJurnal',
+        data: {
+          id: params.id,
+          rowNumber: params.rowNumber,
+          deskripsi: params.deskripsi,
+          no: params.no,
+        },
+      };
+
+      const res = await this.callGasApi('deleteJurnal', undefined, payload);
+      if (res.isJson && res.data && res.data.success) {
+        return {
+          success: true,
+          message: res.data.message || 'Baris transaksi berhasil dihapus dari Google Sheet.',
+        };
+      }
+
+      // If the GAS deployment hasn't registered deleteJurnal yet, return informational notice
+      const errMsg = (res.data && res.data.error) || res.message || 'Aksi deleteJurnal belum aktif di Apps Script.';
+      return {
+        success: false,
+        message: errMsg,
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 
   // Pull CRM Invoices

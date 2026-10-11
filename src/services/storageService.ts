@@ -209,6 +209,12 @@ export class StorageService {
     return newEntry;
   }
 
+  // Update an entry
+  static updateJurnalEntry(id: string, updates: Partial<JurnalEntry>): void {
+    const entries = this.getJurnalEntries().map((e) => (e.id === id ? { ...e, ...updates } : e));
+    this.saveJurnalEntries(entries);
+  }
+
   // Delete an entry
   static deleteJurnalEntry(id: string): void {
     const entries = this.getJurnalEntries().filter((e) => e.id !== id);

@@ -26,7 +26,8 @@ export const RiwayatJurnalView: React.FC<RiwayatJurnalViewProps> = ({ onSuccess 
   const [selectedDivisi, setSelectedDivisi] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [sortAsc, setSortAsc] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; deskripsi: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<JurnalEntry | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const reloadData = () => {
@@ -50,12 +51,35 @@ export const RiwayatJurnalView: React.FC<RiwayatJurnalViewProps> = ({ onSuccess 
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!pendingDelete) return;
-    StorageService.deleteJurnalEntry(pendingDelete.id);
-    reloadData();
-    onSuccess(`Transaksi "${pendingDelete.deskripsi}" telah dihapus.`);
-    setPendingDelete(null);
+    setIsDeleting(true);
+    const itemToDelete = pendingDelete;
+
+    try {
+      // 1. Delete locally immediately
+      StorageService.deleteJurnalEntry(itemToDelete.id);
+      reloadData();
+
+      // 2. Call Two-Way Sync deletion on Google Sheet
+      const delRes = await GasService.deleteJurnalFromSheet({
+        id: itemToDelete.sheetId || itemToDelete.id,
+        rowNumber: itemToDelete.rowNumber,
+        deskripsi: itemToDelete.deskripsi,
+        no: itemToDelete.no,
+      });
+
+      if (delRes.success) {
+        onSuccess(`Transaksi "${itemToDelete.deskripsi}" berhasil dihapus dari Web App dan Google Sheet master.`);
+      } else {
+        onSuccess(`Transaksi "${itemToDelete.deskripsi}" dihapus dari Web App. (Info Sheet: ${delRes.message})`);
+      }
+    } catch (err: unknown) {
+      onSuccess(`Transaksi "${itemToDelete.deskripsi}" dihapus dari Web App.`);
+    } finally {
+      setIsDeleting(false);
+      setPendingDelete(null);
+    }
   };
 
   // Filtered & Sorted Entries
@@ -359,7 +383,7 @@ export const RiwayatJurnalView: React.FC<RiwayatJurnalViewProps> = ({ onSuccess 
                       </td>
                       <td className="py-4 px-3 text-center">
                         <button
-                          onClick={() => setPendingDelete({ id: item.id, deskripsi: item.deskripsi })}
+                          onClick={() => setPendingDelete(item)}
                           className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 transition opacity-0 group-hover:opacity-100"
                           title="Hapus Baris"
                         >
@@ -381,18 +405,23 @@ export const RiwayatJurnalView: React.FC<RiwayatJurnalViewProps> = ({ onSuccess 
           <div className="max-w-md w-full bg-white dark:bg-[#111622] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-5">
             <h3 className="text-lg font-black text-slate-900 dark:text-white">Konfirmasi Hapus Transaksi</h3>
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Apakah Anda yakin ingin menghapus baris transaksi berikut:{' '}
-              <strong className="text-slate-900 dark:text-white block mt-1">"{pendingDelete.deskripsi}"</strong>?
+              Apakah Anda yakin ingin menghapus baris transaksi berikut:
+              <strong className="text-slate-900 dark:text-white block mt-1">"{pendingDelete.deskripsi}"</strong>
+              <span className="text-xs text-slate-400 block mt-1">
+                Nominal: {formatRupiah(pendingDelete.jumlah)} ({pendingDelete.kodeAkun} - {pendingDelete.namaAkun})
+              </span>
             </p>
             <div className="flex gap-3 pt-2">
               <button
                 onClick={confirmDelete}
-                className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm transition"
+                disabled={isDeleting}
+                className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Ya, Hapus
+                <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
               </button>
               <button
                 onClick={() => setPendingDelete(null)}
+                disabled={isDeleting}
                 className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 Batal

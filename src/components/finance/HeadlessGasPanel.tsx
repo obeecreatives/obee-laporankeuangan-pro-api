@@ -96,9 +96,97 @@ export const HeadlessGasPanel: React.FC<HeadlessGasPanelProps> = ({
     return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
   };
 
-  const recommendedCode = `// ============ UPDATE FUNGSI doGet PADA Code.gs SPREADSHEET ============
+  const recommendedCode = `// ========================================================================
+// KODE LENGKAP Code.gs (STANDALONE TWO-WAY SYNC & HTML WEB APP)
+// Buka Google Spreadsheet > Extensions > Apps Script
+// Ganti seluruh isi Code.gs dengan kode di bawah ini, lalu Deploy ulang!
+// ========================================================================
+
+// 1. Helper fungsi include untuk memuat file HTML / CSS jika dibuka di browser
+function include_(filename) {
+  try {
+    return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  } catch (err) {
+    return "";
+  }
+}
+
+// 2. Helper membaca baris transaksi jurnal dari Google Sheet
+function api_getJurnalList(limit) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Jurnal Transaksi") || ss.getSheetByName("Jurnal") || ss.getSheets()[0];
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  var list = [];
+  var rowCount = data.length - 1;
+  var max = limit ? Math.min(rowCount, limit) : rowCount;
+
+  for (var i = 1; i <= rowCount; i++) {
+    var row = data[i];
+    if (!row) continue;
+    // Lewati baris kosong
+    if (!row[1] && !row[4] && !row[7]) continue;
+
+    var tgl = row[1];
+    var tglStr = "";
+    if (tgl instanceof Date) {
+      tglStr = Utilities.formatDate(tgl, Session.getScriptTimeZone() || "Asia/Jakarta", "yyyy-MM-dd");
+    } else if (tgl) {
+      tglStr = String(tgl).trim();
+    }
+
+    var tglB = row[9];
+    var tglBStr = "";
+    if (tglB instanceof Date) {
+      tglBStr = Utilities.formatDate(tglB, Session.getScriptTimeZone() || "Asia/Jakarta", "yyyy-MM-dd");
+    } else if (tglB) {
+      tglBStr = String(tglB).trim();
+    }
+
+    list.push({
+      id: "row-" + (i + 1),
+      no: Number(row[0]) || i,
+      tanggal: tglStr,
+      tipe: String(row[2] || "Pendapatan Proyek"),
+      divisi: String(row[3] || "Umum/Tidak Spesifik"),
+      deskripsi: String(row[4] || ""),
+      kodeAkun: String(row[5] || ""),
+      namaAkun: String(row[6] || ""),
+      jumlah: Number(row[7]) || 0,
+      statusBayar: String(row[8] || "Lunas (Kas Langsung Keluar/Masuk)"),
+      tanggalBayar: tglBStr
+    });
+  }
+  return list;
+}
+
+// 3. Helper ringkasan dashboard keuangan
+function api_getDashboardSummary() {
+  var list = api_getJurnalList(1000);
+  var totalPendapatan = 0;
+  var totalBeban = 0;
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    var tipe = String(item.tipe || "");
+    var jml = Number(item.jumlah) || 0;
+    if (tipe.indexOf("Pendapatan") !== -1) {
+      totalPendapatan += jml;
+    } else if (tipe.indexOf("Beban") !== -1) {
+      totalBeban += jml;
+    }
+  }
+  return {
+    totalPendapatan: totalPendapatan,
+    totalBeban: totalBeban,
+    labaBersih: totalPendapatan - totalBeban,
+    totalTransaksi: list.length
+  };
+}
+
+// ============ FUNGSI doGet (PENGAMBILAN DATA VIA GET & PREVIEW BROWSER) ============
 function doGet(e) {
-  // JIKA DIPANGGIL OLEH REACT WEB APP (HEADLESS API MODE)
+  // Jika dipanggil oleh React Web App dengan parameter action
   if (e && e.parameter && e.parameter.action) {
     var action = e.parameter.action;
     var result = { success: true, timestamp: new Date().toISOString() };
@@ -106,10 +194,9 @@ function doGet(e) {
     try {
       if (action === "ping") {
         result.status = "CONNECTED";
-        result.version = "v2.4 - Headless GAS";
+        result.version = "v2.5 - Two-Way Sync";
       } else if (action === "getAllData") {
-        // Tarik data asli dari seluruh sheet
-        result.jurnal = api_getJurnalList(300);
+        result.jurnal = api_getJurnalList(500);
         result.dashboard = api_getDashboardSummary();
         result.saldoAwal = {};
         var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -134,20 +221,115 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // JIKA DIBUKA MANUAL LEWAT BROWSER BIASA (TAMPILAN LAMA)
-  const email = Session.getActiveUser().getEmail();
-  const allowed = ALLOWED_EMAILS.map((x) => x.toLowerCase().trim());
-  if (!email || allowed.indexOf(email.toLowerCase().trim()) === -1) {
-    return HtmlService.createHtmlOutputFromFile("AccessDenied")
-      .setTitle("Akses Ditolak - Laporan Keuangan obeecreatives")
+  // Jika dibuka langsung di browser tab (tanpa parameter ?action=...)
+  try {
+    return HtmlService.createTemplateFromFile("Index")
+      .evaluate()
+      .setTitle("Laporan Keuangan obeecreatives")
       .addMetaTag("viewport", "width=device-width, initial-scale=1")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } catch (err) {
+    // Fallback JSON jika file Index.html tidak ada
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "ONLINE",
+      message: "API Google Apps Script obeecreatives Aktif & Terhubung",
+      version: "v2.5 - Two-Way Sync",
+      timestamp: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-  return HtmlService.createTemplateFromFile("Index")
-    .evaluate()
-    .setTitle("Laporan Keuangan obeecreatives")
-    .addMetaTag("viewport", "width=device-width, initial-scale=1")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ============ FUNGSI doPost UNTUK TWO-WAY SYNC (INPUT & DELETE) ============
+function doPost(e) {
+  var result = { success: true, timestamp: new Date().toISOString() };
+
+  try {
+    var body = {};
+    if (e && e.postData && e.postData.contents) {
+      body = JSON.parse(e.postData.contents);
+    }
+
+    var action = body.action || (e && e.parameter && e.parameter.action);
+    var data = body.data || body;
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Jurnal Transaksi") || ss.getSheetByName("Jurnal") || ss.getSheets()[0];
+
+    if (action === "addJurnal") {
+      // 1. Tulis Transaksi Baru ke Baris Terakhir Sheet
+      var lastRow = sheet.getLastRow();
+      var newNo = lastRow; // nomor urut
+      var newRow = [
+        newNo,
+        data.tanggal || new Date().toISOString().slice(0, 10),
+        data.tipe || "Pendapatan Proyek",
+        data.divisi || "Umum/Tidak Spesifik",
+        data.deskripsi || "",
+        data.kodeAkun || "",
+        data.namaAkun || "",
+        Number(data.jumlah) || 0,
+        data.statusBayar || "Lunas (Kas Langsung Keluar/Masuk)",
+        data.tanggalBayar || ""
+      ];
+
+      sheet.appendRow(newRow);
+      result.message = "Transaksi berhasil dicatat ke Google Sheet.";
+      result.rowNumber = lastRow + 1;
+
+    } else if (action === "deleteJurnal" || action === "hapusJurnal") {
+      // 2. Hapus Baris Transaksi dari Google Sheet Berdasarkan Nomor Baris / Deskripsi
+      var targetRow = -1;
+      var lastRow = sheet.getLastRow();
+      var values = sheet.getDataRange().getValues();
+
+      // Prioritas 1: Cocokkan berdasarkan rowNumber jika valid
+      if (data.rowNumber && data.rowNumber > 1 && data.rowNumber <= lastRow) {
+        if (!data.deskripsi || String(values[data.rowNumber - 1][4]).trim() === String(data.deskripsi).trim()) {
+          targetRow = data.rowNumber;
+        }
+      }
+
+      // Prioritas 2: Cari baris yang cocok dengan deskripsi transaksi
+      if (targetRow === -1 && data.deskripsi) {
+        for (var i = values.length - 1; i >= 1; i--) {
+          var rowDesc = String(values[i][4] || "").trim();
+          if (rowDesc === String(data.deskripsi).trim()) {
+            targetRow = i + 1;
+            break;
+          }
+        }
+      }
+
+      // Prioritas 3: Cari berdasarkan nomor urut (Kolom A)
+      if (targetRow === -1 && data.no) {
+        for (var i = values.length - 1; i >= 1; i--) {
+          if (Number(values[i][0]) === Number(data.no)) {
+            targetRow = i + 1;
+            break;
+          }
+        }
+      }
+
+      if (targetRow > 1) {
+        sheet.deleteRow(targetRow);
+        result.message = "Baris ke-" + targetRow + " berhasil dihapus dari Google Sheet.";
+        result.deletedRow = targetRow;
+      } else {
+        result.success = false;
+        result.error = "Baris data yang akan dihapus tidak ditemukan di spreadsheet.";
+      }
+
+    } else {
+      result.success = false;
+      result.error = "Aksi POST tidak valid: " + action;
+    }
+  } catch (err) {
+    result.success = false;
+    result.error = err.toString();
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
 }`;
 
   const copyCode = () => {

@@ -39,21 +39,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const { isInstalled } = usePWAInstall();
 
-  const tabs = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'input', label: 'Input Transaksi' },
-    { key: 'riwayat', label: 'Jurnal Umum' },
-    { key: 'bukubesar', label: 'Buku Besar & Saldo' },
-    { key: 'labarugi', label: 'Laba Rugi' },
-    { key: 'neraca', label: 'Neraca' },
-    { key: 'gas-settings', label: 'Sinkronisasi GAS' },
-    { key: 'integrasi', label: 'Tarik Data' },
-  ];
-
   return (
     <header className="sticky top-0 z-20 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-md border-b border-slate-200 dark:border-[#1E293B] shadow-sm">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 lg:px-6 h-14 border-b border-slate-100 dark:border-[#1E293B]/80">
+      <div className="flex items-center justify-between px-4 lg:px-6 h-14">
         {/* Left: Brand logo & titles */}
         <div className="flex items-center gap-3">
           <button
@@ -173,26 +161,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Sub Tabs Navigation (Horizontal on Top) */}
-      <div className="px-4 lg:px-6 flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => onSelectTab(tab.key)}
-              className={`py-3 px-3.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
-                isActive
-                  ? 'border-[#E30000] text-[#E30000] dark:text-red-400 font-extrabold'
-                  : 'border-transparent text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:border-slate-300'
-              }`}
-            >
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
       </div>
     </header>
   );

@@ -16,6 +16,7 @@ import {
   STATUS_BAYAR,
 } from '../../data/constants';
 import { StorageService } from '../../services/storageService';
+import { GasService } from '../../services/gasService';
 import { DivisionType, TransactionType, PaymentStatus } from '../../types/finance';
 
 interface InputTransaksiViewProps {
@@ -72,7 +73,7 @@ export const InputTransaksiView: React.FC<InputTransaksiViewProps> = ({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     const nominal = Number(form.jumlah.replace(/[^0-9]/g, ''));
@@ -92,8 +93,8 @@ export const InputTransaksiView: React.FC<InputTransaksiViewProps> = ({
     const akun = CHART_OF_ACCOUNTS.find((a) => a.kode === form.kodeAkun);
     const namaAkun = akun ? akun.nama : form.kodeAkun;
 
-    // Save to local storage engine
-    StorageService.addJurnalEntry({
+    // Save to local storage engine first for instant snappy UX
+    const savedEntry = StorageService.addJurnalEntry({
       tanggal: form.tanggal,
       tipe: form.tipe,
       divisi: form.divisi,
@@ -104,11 +105,40 @@ export const InputTransaksiView: React.FC<InputTransaksiViewProps> = ({
       statusBayar: form.statusBayar,
       tanggalBayar: form.tanggalBayar || undefined,
       sumberIntegrasi: 'MANUAL',
+      syncStatus: 'local_only',
     });
 
-    setTimeout(() => {
+    try {
+      // Push directly to master Google Sheet (Two-Way Sync)
+      const pushRes = await GasService.sendJurnalToSheet({
+        tanggal: form.tanggal,
+        tipe: form.tipe,
+        divisi: form.divisi,
+        deskripsi: form.deskripsi.trim(),
+        kodeAkun: form.kodeAkun,
+        namaAkun: namaAkun,
+        jumlah: nominal,
+        statusBayar: form.statusBayar,
+        tanggalBayar: form.tanggalBayar || undefined,
+      });
+
+      if (pushRes.success) {
+        StorageService.updateJurnalEntry(savedEntry.id, {
+          syncStatus: 'synced',
+          rowNumber: pushRes.rowNumber,
+        });
+        onSuccess(
+          `Transaksi "${form.deskripsi}" senilai Rp ${nominal.toLocaleString('id-ID')} berhasil dicatat & otomatis tersinkron ke Google Sheet!`
+        );
+      } else {
+        onSuccess(
+          `Transaksi "${form.deskripsi}" tersimpan lokal. (Catatan Sinkronisasi: ${pushRes.message})`
+        );
+      }
+    } catch {
+      onSuccess(`Transaksi "${form.deskripsi}" tersimpan secara lokal.`);
+    } finally {
       setIsSubmitting(false);
-      onSuccess(`Transaksi "${form.deskripsi}" senilai Rp ${nominal.toLocaleString('id-ID')} berhasil dicatat.`);
       // Reset form
       setForm({
         tanggal: todayStr,
@@ -120,7 +150,7 @@ export const InputTransaksiView: React.FC<InputTransaksiViewProps> = ({
         statusBayar: 'Lunas (Kas Langsung Keluar/Masuk)',
         tanggalBayar: '',
       });
-    }, 250);
+    }
   };
 
   const formatNumberInput = (val: string) => {
