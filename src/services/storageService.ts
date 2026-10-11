@@ -134,40 +134,7 @@ const SEED_JURNAL_ENTRIES: JurnalEntry[] = [
   },
 ];
 
-const SEED_IMPORT_LOG: ImportLogEntry[] = [
-  {
-    id: 'log-1',
-    sumber: 'CRM_INVOICE',
-    idReferensi: 'CRM-INV-089',
-    waktuImport: '2026-09-02T10:15:00.000Z',
-    statusSaatImport: 'Lunas',
-    jumlah: 18500000,
-  },
-  {
-    id: 'log-2',
-    sumber: 'CRM_INVOICE',
-    idReferensi: 'CRM-INV-090',
-    waktuImport: '2026-09-04T11:20:00.000Z',
-    statusSaatImport: 'Belum Dibayar',
-    jumlah: 12000000,
-  },
-  {
-    id: 'log-3',
-    sumber: 'PROJECT_CONTROL_FEE',
-    idReferensi: 'PC-CNT-4401',
-    waktuImport: '2026-09-08T14:45:00.000Z',
-    statusSaatImport: 'Approved / RtP',
-    jumlah: 1750000,
-  },
-  {
-    id: 'log-4',
-    sumber: 'PAYROLL',
-    idReferensi: 'PAY-2026-09',
-    waktuImport: '2026-09-28T16:00:00.000Z',
-    statusSaatImport: 'Lunas',
-    jumlah: 16500000,
-  },
-];
+const SEED_IMPORT_LOG: ImportLogEntry[] = [];
 
 export class StorageService {
   // Get all journal entries
@@ -178,11 +145,46 @@ export class StorageService {
         localStorage.setItem(STORAGE_KEYS.JURNAL, JSON.stringify(SEED_JURNAL_ENTRIES));
         return SEED_JURNAL_ENTRIES;
       }
-      const parsed: JurnalEntry[] = JSON.parse(raw);
-      // Auto-upgrade if old demo dummy entries are detected
-      if (parsed.some((e) => e.id === 'tx-101' || e.id === 'tx-102')) {
-        localStorage.setItem(STORAGE_KEYS.JURNAL, JSON.stringify(SEED_JURNAL_ENTRIES));
-        return SEED_JURNAL_ENTRIES;
+      let parsed: JurnalEntry[] = JSON.parse(raw);
+      // Auto-purge any simulated entries and fix any inflated multipliers
+      let hasChanges = false;
+      parsed = parsed
+        .filter((e) => {
+          const desc = e.deskripsi || '';
+          if (
+            desc.includes('Bima Satria') ||
+            desc.includes('Dimas Prakoso') ||
+            desc.includes('Nadia Aurelia') ||
+            desc.includes('Lalu Mahendra (Project Lead)') ||
+            desc.includes('Rian Pratama (Video Editor)') ||
+            desc.includes('Brand Kopi Rempah') ||
+            desc.includes('PT Mandiri Artha') ||
+            desc.includes('CV Surya Cipta Grafika') ||
+            desc.includes('Farhan Creator') ||
+            desc.includes('Anisa Content Studio') ||
+            e.id === 'tx-101' ||
+            e.id === 'tx-102'
+          ) {
+            hasChanges = true;
+            return false;
+          }
+          return true;
+        })
+        .map((e) => {
+          // Fix inflated multipliers on Fee Konten entries (10,000 and 12,500)
+          if (e.deskripsi.includes('Fee Konten Single Post') && e.jumlah === 10000000) {
+            hasChanges = true;
+            return { ...e, jumlah: 10000 };
+          }
+          if (e.deskripsi.includes('Fee Konten Reels') && e.jumlah === 12500000) {
+            hasChanges = true;
+            return { ...e, jumlah: 12500 };
+          }
+          return e;
+        });
+
+      if (hasChanges) {
+        localStorage.setItem(STORAGE_KEYS.JURNAL, JSON.stringify(parsed));
       }
       return parsed;
     } catch {

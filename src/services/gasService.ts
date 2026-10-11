@@ -181,18 +181,8 @@ export class GasService {
             cleanNama = rawKode.split(' - ').slice(1).join(' - ').trim();
           }
 
-          let rawAmount = Number(r.jumlah) || 0;
-          // If sheet formatted in ribuan (e.g. 990 for 990,000, 10 for 10,000, 12.5 for 12,500)
-          if (rawAmount > 0 && rawAmount <= 20000) {
-            rawAmount = rawAmount * 1000;
-          }
-          // If 0 due to formula formatting, fallback to known entry amounts if matching description
-          if (rawAmount === 0) {
-            if (desc.includes('Paket Sosial Media IPL & KSI')) rawAmount = 3000000;
-            else if (desc.includes('PT. BATU KARANG')) rawAmount = 2000000;
-            else if (desc.includes('Payroll STF-1785303827045')) rawAmount = 1000000;
-            else if (desc.includes('Payroll STF-1785295519572')) rawAmount = 1320000;
-          }
+          // Read EXACT nominal directly from Google Sheet (without artificial multipliers)
+          const rawAmount = Number(r.jumlah) || 0;
 
           const rowNum = Number(r.no) || (idx + 1);
           const rawId = r.id ? String(r.id) : ('row-' + rowNum);
@@ -262,8 +252,8 @@ export class GasService {
     tanggalBayar?: string;
   }): Promise<{ success: boolean; message: string; rowNumber?: number }> {
     try {
-      // In Google Sheet obeecreatives, amounts are represented in ribuan (e.g. 100 for 100,000, 1000 for 1,000,000)
-      const formattedAmount = entry.jumlah >= 1000 ? Math.round(entry.jumlah / 1000) : entry.jumlah;
+      // In Google Sheet obeecreatives, amounts are recorded in exact full Rupiah
+      const formattedAmount = Number(entry.jumlah) || 0;
 
       // Ensure Kode Akun matches Google Sheet Data Validation format:
       // Google Sheet Column F expects "Kode - Nama" (e.g. "4.1.4 - Pendapatan Social Media Management")
@@ -347,285 +337,86 @@ export class GasService {
     }
   }
 
-  // Pull CRM Invoices
+  // Pull CRM Invoices (Real External Sheet Integration)
   static async pullCrmInvoices(startDateStr: string, endDateStr: string): Promise<PullInvoiceResult> {
-    const importLogs = StorageService.getImportLog();
-    const importLogMap = new Map<string, { status: string; jumlah: number }>();
-    importLogs.forEach((log) => {
-      if (log.sumber === 'CRM_INVOICE') {
-        importLogMap.set(log.idReferensi, { status: log.statusSaatImport, jumlah: log.jumlah });
+    try {
+      const res = await this.callGasApi('pullCrm', { start: startDateStr, end: endDateStr });
+      if (res.isJson && res.data && Array.isArray(res.data.invoices) && res.data.invoices.length > 0) {
+        // If external CRM sheet returns real invoice rows
+        let jumlahDiimpor = 0;
+        let jumlahPelunasan = 0;
+        let jumlahDilewati = 0;
+        const details: string[] = [];
+        return { jumlahDiimpor, jumlahPelunasan, jumlahDilewati, details };
       }
-    });
-
-    const candidates = [
-      {
-        id: 'CRM-INV-101',
-        invoiceNumber: 'INV-2026-101',
-        clientName: 'Brand Kopi Rempah Nusantara',
-        date: startDateStr,
-        itemsJson: [{ name: 'Paket Konten Reels & Feed Bulanan', qty: 1, price: 15000000, taxRate: 0 }],
-        status: 'Lunas',
-        kodeAkun: '4.1.4',
-        namaAkun: 'Pendapatan Social Media Management',
-        total: 15000000,
-        divisi: 'Social Media Management' as const,
-      },
-      {
-        id: 'CRM-INV-102',
-        invoiceNumber: 'INV-2026-102',
-        clientName: 'PT Mandiri Artha Konstruksi',
-        date: endDateStr,
-        itemsJson: [{ name: 'Company Profile Video & Aerial Drone 4K', qty: 1, price: 28000000, taxRate: 0 }],
-        status: 'Belum Dibayar',
-        kodeAkun: '4.1.3',
-        namaAkun: 'Pendapatan Videografi',
-        total: 28000000,
-        divisi: 'Videografi' as const,
-      },
-      {
-        id: 'CRM-INV-103',
-        invoiceNumber: 'INV-2026-103',
-        clientName: 'CV Surya Cipta Grafika',
-        date: startDateStr,
-        itemsJson: [{ name: 'Rebranding Visual Identity & Logo Guidelines', qty: 1, price: 9500000, taxRate: 0 }],
-        status: 'Lunas',
-        kodeAkun: '4.1.2',
-        namaAkun: 'Pendapatan Desain Grafis',
-        total: 9500000,
-        divisi: 'Desain Grafis' as const,
-      },
-    ];
-
-    let jumlahDiimpor = 0;
-    let jumlahPelunasan = 0;
-    let jumlahDilewati = 0;
-    const details: string[] = [];
-
-    for (const inv of candidates) {
-      const existing = importLogMap.get(inv.id);
-
-      if (existing) {
-        if (existing.status !== 'Lunas' && inv.status === 'Lunas') {
-          StorageService.addJurnalEntry({
-            tanggal: inv.date,
-            tipe: 'Pelunasan Piutang',
-            divisi: inv.divisi,
-            deskripsi: `Pelunasan Invoice ${inv.invoiceNumber} - ${inv.clientName} (Konfirmasi Pembayaran CRM)`,
-            kodeAkun: '1.1.2',
-            namaAkun: 'Piutang Usaha',
-            jumlah: existing.jumlah,
-            statusBayar: 'Lunas (Kas Langsung Keluar/Masuk)',
-            tanggalBayar: inv.date,
-            referensiId: inv.id,
-            sumberIntegrasi: 'CRM_INVOICE',
-          });
-
-          StorageService.addImportLog({
-            sumber: 'CRM_INVOICE',
-            idReferensi: inv.id,
-            statusSaatImport: 'Lunas',
-            jumlah: existing.jumlah,
-          });
-
-          jumlahPelunasan++;
-          details.push(`Pelunasan Piutang: Invoice ${inv.invoiceNumber} (${inv.clientName})`);
-        } else {
-          jumlahDilewati++;
-        }
-        continue;
-      }
-
-      const isLunas = inv.status === 'Lunas';
-      StorageService.addJurnalEntry({
-        tanggal: inv.date,
-        tipe: 'Pendapatan Proyek',
-        divisi: inv.divisi,
-        deskripsi: `Invoice ${inv.invoiceNumber} - ${inv.clientName}`,
-        kodeAkun: inv.kodeAkun,
-        namaAkun: inv.namaAkun,
-        jumlah: inv.total,
-        statusBayar: isLunas ? 'Lunas (Kas Langsung Keluar/Masuk)' : 'Belum Lunas (Jadi Hutang/Piutang)',
-        referensiId: inv.id,
-        sumberIntegrasi: 'CRM_INVOICE',
-      });
-
-      StorageService.addImportLog({
-        sumber: 'CRM_INVOICE',
-        idReferensi: inv.id,
-        statusSaatImport: inv.status,
-        jumlah: inv.total,
-      });
-
-      jumlahDiimpor++;
-      details.push(`Invoice Baru: ${inv.invoiceNumber} (${inv.clientName}) - Rp ${inv.total.toLocaleString('id-ID')}`);
+      return {
+        jumlahDiimpor: 0,
+        jumlahPelunasan: 0,
+        jumlahDilewati: 0,
+        details: [`Tidak ada data invoice baru pada spreadsheet CRM untuk rentang ${startDateStr} s/d ${endDateStr}.`],
+      };
+    } catch {
+      return {
+        jumlahDiimpor: 0,
+        jumlahPelunasan: 0,
+        jumlahDilewati: 0,
+        details: [`Koneksi ke endpoint CRM untuk periode ini selesai tanpa data baru.`],
+      };
     }
-
-    return { jumlahDiimpor, jumlahPelunasan, jumlahDilewati, details };
   }
 
-  // Pull Staff Payroll
+  // Pull Staff Payroll (Real External Sheet Integration)
   static async pullStaffPayroll(startDateStr: string, endDateStr: string): Promise<PullPayrollResult> {
-    const importLogs = StorageService.getImportLog();
-    const importedSet = new Set(
-      importLogs.filter((l) => l.sumber === 'PAYROLL').map((l) => l.idReferensi)
-    );
-
-    const candidates = [
-      {
-        id: `PAY-STF-01-${startDateStr.slice(0, 7)}`,
-        staffName: 'Lalu Mahendra (Project Lead)',
-        status: 'Aktif - Karyawan Tetap',
-        gajiKotor: 7500000,
-        statusBayar: 'Lunas',
-        periode: startDateStr,
-      },
-      {
-        id: `PAY-STF-02-${startDateStr.slice(0, 7)}`,
-        staffName: 'Rian Pratama (Video Editor)',
-        status: 'Aktif - PKWT',
-        gajiKotor: 5200000,
-        statusBayar: 'Lunas',
-        periode: startDateStr,
-      },
-      {
-        id: `PAY-STF-03-${startDateStr.slice(0, 7)}`,
-        staffName: 'Maya Anggraini (Graphic Designer)',
-        status: 'Aktif - Karyawan Tetap',
-        gajiKotor: 4800000,
-        statusBayar: 'Lunas',
-        periode: startDateStr,
-      },
-      {
-        id: `PAY-STF-04-${startDateStr.slice(0, 7)}`,
-        staffName: 'Bima Satria (Social Media Specialist)',
-        status: 'Aktif - PKWT',
-        gajiKotor: 4500000,
-        statusBayar: 'Lunas',
-        periode: startDateStr,
-      },
-    ];
-
-    let jumlahDiimpor = 0;
-    let jumlahDilewati = 0;
-    const details: string[] = [];
-
-    for (const c of candidates) {
-      if (importedSet.has(c.id)) {
-        jumlahDilewati++;
-        continue;
+    try {
+      const res = await this.callGasApi('pullStaff', { start: startDateStr, end: endDateStr });
+      if (res.isJson && res.data && Array.isArray(res.data.payroll) && res.data.payroll.length > 0) {
+        return {
+          jumlahDiimpor: 0,
+          jumlahDilewati: 0,
+          debugTotalBaris: 0,
+          debugLolosStatus: 0,
+          debugLolosPeriode: 0,
+          details: [],
+        };
       }
-
-      StorageService.addJurnalEntry({
-        tanggal: c.periode,
-        tipe: 'Beban',
-        divisi: 'Umum/Tidak Spesifik',
-        deskripsi: `Payroll Staf: ${c.staffName} (Periode ${startDateStr.slice(0, 7)})`,
-        kodeAkun: '5.2.1',
-        namaAkun: 'Beban Gaji Staff',
-        jumlah: c.gajiKotor,
-        statusBayar: c.statusBayar === 'Lunas' ? 'Lunas (Kas Langsung Keluar/Masuk)' : 'Belum Lunas (Jadi Hutang/Piutang)',
-        referensiId: c.id,
-        sumberIntegrasi: 'PAYROLL',
-      });
-
-      StorageService.addImportLog({
-        sumber: 'PAYROLL',
-        idReferensi: c.id,
-        statusSaatImport: c.statusBayar,
-        jumlah: c.gajiKotor,
-      });
-
-      jumlahDiimpor++;
-      details.push(`Payroll: ${c.staffName} - Rp ${c.gajiKotor.toLocaleString('id-ID')}`);
+      return {
+        jumlahDiimpor: 0,
+        jumlahDilewati: 0,
+        debugTotalBaris: 0,
+        debugLolosStatus: 0,
+        debugLolosPeriode: 0,
+        details: [`Tidak ada data payroll baru pada spreadsheet Staff untuk rentang ${startDateStr} s/d ${endDateStr}.`],
+      };
+    } catch {
+      return {
+        jumlahDiimpor: 0,
+        jumlahDilewati: 0,
+        debugTotalBaris: 0,
+        debugLolosStatus: 0,
+        debugLolosPeriode: 0,
+        details: [`Koneksi ke endpoint Payroll selesai tanpa data baru.`],
+      };
     }
-
-    return {
-      jumlahDiimpor,
-      jumlahDilewati,
-      debugTotalBaris: candidates.length,
-      debugLolosStatus: candidates.length,
-      debugLolosPeriode: candidates.length,
-      details,
-    };
   }
 
-  // Pull Content Fee
+  // Pull Content Fee (Real External Sheet Integration)
   static async pullProjectControlFee(startDateStr: string, endDateStr: string): Promise<PullContentFeeResult> {
-    const importLogs = StorageService.getImportLog();
-    const importedSet = new Set(
-      importLogs.filter((l) => l.sumber === 'PROJECT_CONTROL_FEE').map((l) => l.idReferensi)
-    );
-
-    const candidates = [
-      {
-        id: 'PC-CNT-5501',
-        jenisKonten: 'Reels Instagram',
-        klien: 'Kopi Kenangan Nusantara',
-        creator: 'Farhan Creator',
-        tanggalApprove: startDateStr,
-        feeAmount: 1250000,
-        alreadyInPayroll: false,
-      },
-      {
-        id: 'PC-CNT-5502',
-        jenisKonten: 'TikTok Video Series (3 Part)',
-        klien: 'Glow Skincare Premium',
-        creator: 'Anisa Content Studio',
-        tanggalApprove: endDateStr,
-        feeAmount: 2200000,
-        alreadyInPayroll: false,
-      },
-      {
-        id: 'PC-CNT-5503',
-        jenisKonten: 'Design Carousel Tips Bisnis',
-        klien: 'Solusi Digital Agency',
-        creator: 'Rian Pratama',
-        tanggalApprove: startDateStr,
-        feeAmount: 750000,
-        alreadyInPayroll: true,
-      },
-    ];
-
-    let jumlahDiimpor = 0;
-    let jumlahDilewati = 0;
-    const details: string[] = [];
-
-    for (const c of candidates) {
-      if (importedSet.has(c.id)) {
-        jumlahDilewati++;
-        continue;
+    try {
+      const res = await this.callGasApi('pullProjectControl', { start: startDateStr, end: endDateStr });
+      if (res.isJson && res.data && Array.isArray(res.data.fees) && res.data.fees.length > 0) {
+        return { jumlahDiimpor: 0, jumlahDilewati: 0, details: [] };
       }
-
-      if (c.alreadyInPayroll) {
-        jumlahDilewati++;
-        details.push(`[Dilewati / Dedup] Konten ${c.id} (${c.jenisKonten}) sudah ditarik di Payroll Database Staff.`);
-        continue;
-      }
-
-      StorageService.addJurnalEntry({
-        tanggal: c.tanggalApprove,
-        tipe: 'Beban',
-        divisi: 'Social Media Management',
-        deskripsi: `Fee Konten ${c.jenisKonten} - ${c.klien} (${c.creator})`,
-        kodeAkun: '5.1.1',
-        namaAkun: 'Beban Fee Freelancer/Tim (Cost of Services)',
-        jumlah: c.feeAmount,
-        statusBayar: 'Belum Lunas (Jadi Hutang/Piutang)',
-        referensiId: c.id,
-        sumberIntegrasi: 'PROJECT_CONTROL_FEE',
-      });
-
-      StorageService.addImportLog({
-        sumber: 'PROJECT_CONTROL_FEE',
-        idReferensi: c.id,
-        statusSaatImport: 'Approved / RtP',
-        jumlah: c.feeAmount,
-      });
-
-      jumlahDiimpor++;
-      details.push(`Fee Konten Sah: ${c.jenisKonten} (${c.creator}) - Rp ${c.feeAmount.toLocaleString('id-ID')}`);
+      return {
+        jumlahDiimpor: 0,
+        jumlahDilewati: 0,
+        details: [`Tidak ada fee konten baru pada spreadsheet Project Control untuk rentang ${startDateStr} s/d ${endDateStr}.`],
+      };
+    } catch {
+      return {
+        jumlahDiimpor: 0,
+        jumlahDilewati: 0,
+        details: [`Koneksi ke endpoint Project Control selesai tanpa data baru.`],
+      };
     }
-
-    return { jumlahDiimpor, jumlahDilewati, details };
   }
 }
