@@ -51,7 +51,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     <header className="sticky top-0 z-20 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-md border-b border-slate-200 dark:border-[#1E293B] shadow-sm">
       {/* Top Bar */}
       <div className="flex items-center justify-between px-4 lg:px-6 h-14 border-b border-slate-100 dark:border-[#1E293B]/80">
-        {/* Left: Mobile trigger & breadcrumb */}
+        {/* Left: Brand logo & titles */}
         <div className="flex items-center gap-3">
           <button
             onClick={onOpenMobileMenu}
@@ -61,16 +61,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold px-2 py-0.5 rounded bg-[#450A0A] text-red-300 uppercase tracking-wider">
-              Laporan Keuangan
-            </span>
-            <h1 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-[#F1F5F9] tracking-tight flex items-center gap-1.5">
-              <span>obee<span className="text-[#E30000]">creatives</span></span>
-              <span className="hidden sm:inline font-medium text-slate-400 dark:text-[#94A3B8] text-xs">
-                • Sistem Akuntansi & Pembukuan Kas Asli
-              </span>
-            </h1>
+          {/* Logo mark */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#E30000] flex items-center justify-center text-white font-black shadow-md shadow-red-500/20 shrink-0">
+              <span className="text-lg tracking-tighter">O</span>
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h1 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-[#F1F5F9] tracking-tight leading-none">
+                  obee<span className="text-[#E30000]">creatives</span>
+                </h1>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-[#450A0A] dark:text-red-300 uppercase tracking-wider">
+                  Laporan Keuangan
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 dark:text-[#94A3B8] hidden sm:block leading-tight mt-0.5">
+                Sistem Akuntansi & Pembukuan Kas (Sinkronisasi Google Sheet)
+              </p>
+            </div>
           </div>
 
           {/* Connection status badge */}

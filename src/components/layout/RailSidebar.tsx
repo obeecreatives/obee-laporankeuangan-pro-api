@@ -10,8 +10,7 @@ import {
   DownloadCloud,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  FileCheck2,
+  Menu,
 } from 'lucide-react';
 
 interface RailSidebarProps {
@@ -61,7 +60,7 @@ export const RailSidebar: React.FC<RailSidebarProps> = ({
       ],
     },
     {
-      group: 'Laporan Keuangan Resmi',
+      group: 'Laporan Keuangan',
       items: [
         {
           key: 'labarugi',
@@ -78,7 +77,7 @@ export const RailSidebar: React.FC<RailSidebarProps> = ({
       ],
     },
     {
-      group: 'Integrasi Data Sheet',
+      group: 'Integrasi Sheet',
       items: [
         {
           key: 'gas-settings',
@@ -98,36 +97,43 @@ export const RailSidebar: React.FC<RailSidebarProps> = ({
 
   return (
     <aside
-      className={`relative hidden md:flex flex-col border-r transition-all duration-300 z-30 select-none ${
+      className={`hidden md:flex flex-col border-r transition-all duration-300 z-20 select-none sticky top-14 h-[calc(100vh-3.5rem)] shrink-0 ${
         isCollapsed ? 'w-20' : 'w-64'
       } bg-white dark:bg-[#0B1120] border-slate-200 dark:border-[#1E293B] text-slate-800 dark:text-[#F1F5F9] shadow-sm`}
     >
-      {/* Brand Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 dark:border-[#1E293B]">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-[#E30000] flex items-center justify-center text-white font-black shadow-md shadow-red-500/25 shrink-0">
-            <span className="text-xl tracking-tighter">O</span>
-          </div>
-          {!isCollapsed && (
-            <div className="flex flex-col min-w-0">
-              <div className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white truncate">
-                obee<span className="text-[#E30000]">creatives</span>
-              </div>
-              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-[#94A3B8] flex items-center gap-1">
-                <FileCheck2 className="w-3 h-3 text-[#E30000]" />
-                <span>Laporan Keuangan</span>
-              </div>
-            </div>
+      {/* 1. TOP TOGGLE BUTTON: Posisi toggle ciutkan sidebar sekarang berada di atas */}
+      <div className="p-2.5 border-b border-slate-200/80 dark:border-[#1E293B]/80 flex items-center justify-between bg-slate-50/60 dark:bg-[#0E1526]">
+        {!isCollapsed && (
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pl-2 flex items-center gap-1.5">
+            <Menu className="w-3.5 h-3.5 text-slate-400" />
+            <span>Menu Keuangan</span>
+          </span>
+        )}
+        <button
+          onClick={onToggleCollapse}
+          className={`flex items-center gap-1.5 p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-[#1E293B] transition-all text-xs font-semibold ${
+            isCollapsed ? 'mx-auto' : 'ml-auto'
+          }`}
+          title={isCollapsed ? 'Perlebar Sidebar' : 'Ciutkan Sidebar'}
+          aria-label={isCollapsed ? 'Perlebar Sidebar' : 'Ciutkan Sidebar'}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4 text-[#E30000]" />
+          ) : (
+            <>
+              <ChevronLeft className="w-4 h-4 text-[#E30000]" />
+              <span className="text-[11px]">Ciutkan</span>
+            </>
           )}
-        </div>
+        </button>
       </div>
 
-      {/* Navigation Groups */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+      {/* 2. NAVIGATION GROUPS (Bisa di-scroll tersendiri jika layar vertikal kecil) */}
+      <div className="flex-1 overflow-y-auto py-3 px-2.5 space-y-5">
         {financialGroups.map((group) => (
           <div key={group.group} className="space-y-1">
             {!isCollapsed && (
-              <div className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#94A3B8]">
+              <div className="px-2.5 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-[#94A3B8]">
                 {group.group}
               </div>
             )}
@@ -161,9 +167,9 @@ export const RailSidebar: React.FC<RailSidebarProps> = ({
 
                   {!isCollapsed && (
                     <div className="flex-1 text-left min-w-0">
-                      <div className="truncate font-bold">{item.label}</div>
+                      <div className="truncate font-bold leading-tight">{item.label}</div>
                       <div
-                        className={`text-[10px] truncate ${
+                        className={`text-[10px] truncate leading-tight mt-0.5 ${
                           isActive
                             ? 'text-red-100'
                             : 'text-slate-400 dark:text-slate-500'
@@ -184,9 +190,9 @@ export const RailSidebar: React.FC<RailSidebarProps> = ({
         ))}
       </div>
 
-      {/* Footer Connection & Collapse Status */}
-      <div className="p-3 border-t border-slate-200 dark:border-[#1E293B] space-y-2">
-        {!isCollapsed && (
+      {/* 3. FOOTER GAS STATUS */}
+      <div className="p-2.5 border-t border-slate-200 dark:border-[#1E293B]">
+        {!isCollapsed ? (
           <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#111622] border border-slate-100 dark:border-slate-800 text-xs">
             <div className="flex items-center gap-2">
               <span
@@ -194,30 +200,23 @@ export const RailSidebar: React.FC<RailSidebarProps> = ({
                   gasConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
                 }`}
               />
-              <span className="font-bold text-slate-700 dark:text-slate-300">
+              <span className="font-bold text-slate-700 dark:text-slate-300 text-[11px]">
                 Google Sheet GAS
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+            <p className="text-[10px] text-slate-400 mt-0.5 truncate">
               {gasConnected ? 'Terhubung & Sinkron' : 'Mode Offline / Cache'}
             </p>
           </div>
+        ) : (
+          <div className="flex justify-center py-1" title={gasConnected ? 'GAS Terhubung' : 'GAS Offline'}>
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                gasConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+              }`}
+            />
+          </div>
         )}
-
-        <button
-          onClick={onToggleCollapse}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition"
-          title={isCollapsed ? 'Perlebar Sidebar' : 'Ciutkan Sidebar'}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <>
-              <ChevronLeft className="w-4 h-4" />
-              <span>Ciutkan Sidebar</span>
-            </>
-          )}
-        </button>
       </div>
     </aside>
   );

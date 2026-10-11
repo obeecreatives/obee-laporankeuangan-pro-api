@@ -103,30 +103,31 @@ export default function App() {
   };
 
   return (
-    <div className={`${isDarkMode ? 'dark' : ''} min-h-screen flex bg-[#F8FAFC] dark:bg-[#0B0F17] text-slate-900 dark:text-[#F1F5F9] transition-colors selection:bg-red-500/20 selection:text-[#EF4444]`}>
-      {/* Desktop/Tablet Dedicated Financial Sidebar */}
-      <RailSidebar
+    <div className={`${isDarkMode ? 'dark' : ''} min-h-screen flex flex-col bg-[#F8FAFC] dark:bg-[#0B0F17] text-slate-900 dark:text-[#F1F5F9] transition-colors selection:bg-red-500/20 selection:text-[#EF4444]`}>
+      {/* 1. Full-Width Global Topbar / Header (Penuh di Atas) */}
+      <AppHeader
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={handleToggleCollapse}
-        gasConnected={gasStatus.connected}
+        isDarkMode={isDarkMode}
+        onToggleTheme={handleToggleTheme}
+        onOpenMobileMenu={() => setIsMobileDrawerOpen(true)}
+        gasStatus={gasStatus}
+        onRefreshData={handleManualRefresh}
       />
 
-      {/* Main Workspace Frame */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        <AppHeader
+      {/* 2. Body Container (Sidebar di Bawah Header + Main View Area) */}
+      <div className="flex-1 flex min-h-[calc(100vh-3.5rem)]">
+        {/* Desktop/Tablet Dedicated Financial Sidebar (di Bawah Topbar) */}
+        <RailSidebar
           activeTab={activeTab}
           onSelectTab={setActiveTab}
-          isDarkMode={isDarkMode}
-          onToggleTheme={handleToggleTheme}
-          onOpenMobileMenu={() => setIsMobileDrawerOpen(true)}
-          gasStatus={gasStatus}
-          onRefreshData={handleManualRefresh}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+          gasConnected={gasStatus.connected}
         />
 
-        {/* Financial View Router */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto" key={dataVersion}>
+        {/* Main Workspace Frame */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto overflow-y-auto" key={dataVersion}>
           {activeTab === 'dashboard' && (
             <DashboardView onNavigateTab={setActiveTab} />
           )}
