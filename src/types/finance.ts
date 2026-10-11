@@ -90,11 +90,34 @@ export interface FinancialDashboardSummary {
 
 export type UserRole = 'super_admin' | 'project_manager' | 'creator_staff' | 'client';
 
+export type RBACRole =
+  | 'project_manager'
+  | 'site_engineer'
+  | 'admin'
+  | 'staff'
+  | 'vendor_client'
+  | 'publik';
+
+export interface RoleConfig {
+  id: RBACRole;
+  label: string;
+  shortLabel: string;
+  badgeBg: string;
+  badgeText: string;
+  description: string;
+  canEdit: boolean;
+  canDelete: boolean;
+  canViewReports: boolean;
+  canAccessGAS: boolean;
+  canIntegrate: boolean;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  rbacRole?: RBACRole;
   roleLabel: string;
   divisi: string;
   pin: string;

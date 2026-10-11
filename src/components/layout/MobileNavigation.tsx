@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 
+import { RBACRole } from '../../types/finance';
+import { RBAC_ROLES, getRoleConfig } from '../../data/rbacRoles';
+
 interface MobileNavigationProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
@@ -22,6 +25,9 @@ interface MobileNavigationProps {
   onOpenDrawer: () => void;
   gasConnected?: boolean;
   onOpenInstallModal?: () => void;
+  currentRole?: RBACRole;
+  onChangeRole?: (role: RBACRole) => void;
+  onOpenGasCenter?: () => void;
 }
 
 export const MobileNavigation: React.FC<MobileNavigationProps> = ({
@@ -32,6 +38,9 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onOpenDrawer,
   gasConnected = true,
   onOpenInstallModal,
+  currentRole,
+  onChangeRole,
+  onOpenGasCenter,
 }) => {
   const { isInstalled } = usePWAInstall();
 
@@ -146,9 +155,43 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
               </button>
             </div>
 
+            {/* Active Role Switcher for Mobile */}
+            {currentRole && onChangeRole && (
+              <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Peran Aktif (RBAC)
+                  </span>
+                  <span className="text-[10px] font-bold text-red-600 dark:text-red-400">
+                    {getRoleConfig(currentRole).shortLabel}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {RBAC_ROLES.map((r) => {
+                    const isSelected = r.id === currentRole;
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => {
+                          onChangeRole(r.id);
+                        }}
+                        className={`px-2 py-1.5 rounded-lg text-left text-xs font-semibold transition truncate ${
+                          isSelected
+                            ? 'bg-red-600 text-white shadow-sm'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {r.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* In-App Install Quick Card inside Drawer for Mobile */}
             {!isInstalled && onOpenInstallModal && (
-              <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/40 dark:to-slate-900 border border-red-200/80 dark:border-red-900/60 flex items-center justify-between">
+              <div className="mt-2 p-3 rounded-2xl bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/40 dark:to-slate-900 border border-red-200/80 dark:border-red-900/60 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-xs font-extrabold text-red-900 dark:text-red-200">
                     Install di Handphone

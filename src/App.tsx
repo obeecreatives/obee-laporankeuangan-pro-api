@@ -11,12 +11,29 @@ import { NeracaView } from './components/finance/NeracaView';
 import { IntegrasiHubView } from './components/finance/IntegrasiHubView';
 import { HeadlessGasPanel } from './components/finance/HeadlessGasPanel';
 import { InstallModal } from './components/modals/InstallModal';
+import { QuickSearchModal } from './components/modals/QuickSearchModal';
+import { GasCenterModal } from './components/modals/GasCenterModal';
 import { GasService } from './services/gasService';
 import { CheckCircle2, AlertCircle, Download, Sparkles } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { RBACRole } from './types/finance';
+import { getRoleConfig } from './data/rbacRoles';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+
+  // RBAC Role Switcher State
+  const [currentRole, setCurrentRole] = useState<RBACRole>(() => {
+    const saved = localStorage.getItem('obee_active_role');
+    if (saved && ['admin', 'project_manager', 'site_engineer', 'staff', 'vendor_client', 'publik'].includes(saved)) {
+      return saved as RBACRole;
+    }
+    return 'admin';
+  });
+
+  // Quick Search & GAS Center Modals
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isGasCenterOpen, setIsGasCenterOpen] = useState(false);
 
   // Dark / Light Theme (Mode Gelap — Default)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -118,6 +135,25 @@ export default function App() {
     sessionStorage.setItem('obee_pwa_banner_dismissed', 'true');
   };
 
+  const handleChangeRole = (role: RBACRole) => {
+    setCurrentRole(role);
+    localStorage.setItem('obee_active_role', role);
+    const cfg = getRoleConfig(role);
+    showToast(`Beralih ke peran: ${cfg.label}`, 'success');
+  };
+
+  // Keyboard shortcut for Cmd/Ctrl + K
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   const handleTriggerInstall = async () => {
     if (isInstallable) {
       const outcome = await install();
@@ -142,6 +178,10 @@ export default function App() {
         gasStatus={gasStatus}
         onRefreshData={handleManualRefresh}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenGasCenter={() => setIsGasCenterOpen(true)}
+        currentRole={currentRole}
+        onChangeRole={handleChangeRole}
       />
 
       {/* Mobile Friendly Quick Install Banner (Khusus HP / Layar belum terpasang aplikasi) */}
@@ -255,6 +295,25 @@ export default function App() {
         onOpenDrawer={() => setIsMobileDrawerOpen(true)}
         gasConnected={gasStatus.connected}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        currentRole={currentRole}
+        onChangeRole={handleChangeRole}
+        onOpenGasCenter={() => setIsGasCenterOpen(true)}
+      />
+
+      {/* Quick Search Global Command Palette (⌘K) */}
+      <QuickSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onNavigateTab={setActiveTab}
+      />
+
+      {/* GAS Center & Two-Way Sync Trigger Modal */}
+      <GasCenterModal
+        isOpen={isGasCenterOpen}
+        onClose={() => setIsGasCenterOpen(false)}
+        gasStatus={gasStatus}
+        onRefreshData={handleManualRefresh}
+        onNavigateTab={setActiveTab}
       />
 
       {/* Install Modal Popup (Direct install on Chrome/Android/Edge & iOS quick helper) */}
