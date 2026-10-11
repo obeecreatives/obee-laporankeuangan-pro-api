@@ -265,6 +265,14 @@ export class GasService {
       // In Google Sheet obeecreatives, amounts are represented in ribuan (e.g. 100 for 100,000, 1000 for 1,000,000)
       const formattedAmount = entry.jumlah >= 1000 ? Math.round(entry.jumlah / 1000) : entry.jumlah;
 
+      // Ensure Kode Akun matches Google Sheet Data Validation format:
+      // Google Sheet Column F expects "Kode - Nama" (e.g. "4.1.4 - Pendapatan Social Media Management")
+      // If only raw numbers like "4.1.4" are sent, Google Sheets auto-parses "4.1.4" as Date "4.1.2004"!
+      let formattedKode = entry.kodeAkun;
+      if (entry.namaAkun && !formattedKode.includes(' - ')) {
+        formattedKode = `${entry.kodeAkun} - ${entry.namaAkun}`;
+      }
+
       const payload = {
         action: 'addJurnal',
         data: {
@@ -272,7 +280,7 @@ export class GasService {
           tipe: entry.tipe,
           divisi: entry.divisi,
           deskripsi: entry.deskripsi,
-          kodeAkun: entry.kodeAkun,
+          kodeAkun: formattedKode,
           namaAkun: entry.namaAkun,
           jumlah: formattedAmount,
           statusBayar: entry.statusBayar,

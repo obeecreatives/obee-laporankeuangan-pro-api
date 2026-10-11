@@ -256,16 +256,20 @@ function doPost(e) {
     var sheet = ss.getSheetByName("Jurnal Transaksi") || ss.getSheetByName("Jurnal") || ss.getSheets()[0];
 
     if (action === "addJurnal") {
-      // 1. Tulis Transaksi Baru ke Baris Terakhir Sheet
       var lastRow = sheet.getLastRow();
       var newNo = lastRow; // nomor urut
+      var fullKodeAkun = String(data.kodeAkun || "");
+      if (data.namaAkun && fullKodeAkun.indexOf(" - ") === -1) {
+        fullKodeAkun = fullKodeAkun + " - " + String(data.namaAkun).trim();
+      }
+
       var newRow = [
         newNo,
         data.tanggal || new Date().toISOString().slice(0, 10),
         data.tipe || "Pendapatan Proyek",
         data.divisi || "Umum/Tidak Spesifik",
         data.deskripsi || "",
-        data.kodeAkun || "",
+        fullKodeAkun,
         data.namaAkun || "",
         Number(data.jumlah) || 0,
         data.statusBayar || "Lunas (Kas Langsung Keluar/Masuk)",
